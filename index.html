@@ -153,7 +153,7 @@
         <h3 style="margin-top:0; color:#1e3a8a;">📝 目前組隊狀態 (待儲存)</h3>
         
         <div class="group-info" id="groupRuleInfo">
-          設定：每組正取 3 人，可備取 1 組 (3 人)
+          設定：1組3 人，正取1組、備取1 組
         </div>
 
         <div class="selected-list" id="selectedListContainer">
@@ -240,9 +240,8 @@
   };
 
   function updateGroupRuleText() {
-    const maxTotal = sysConfig.groupSize + (sysConfig.groupSize * sysConfig.waitlistCount);
     document.getElementById('groupRuleInfo').textContent = 
-      `設定：每組正取 ${sysConfig.groupSize} 人，備取 ${sysConfig.waitlistCount} 組 (共可選 ${maxTotal} 人)`;
+      `設定：1組${sysConfig.groupSize} 人，正取1組、備取${sysConfig.waitlistCount} 組`;
   }
 
   // ================== 查詢班級學生 ==================
