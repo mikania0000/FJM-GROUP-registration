@@ -186,7 +186,7 @@
   // ==========================================
   // ⚠️ 部署設定區：請替換為您的 GAS 網頁應用程式網址
   // ==========================================
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyeE8XjA9r9n2fG1l6MhYf4N_2hR1c8pY-hV_5wD1i8D7fR_8jR5P-8H9Zz-4x_7H/exec"; 
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbww9F0m7-6g3d9toQ8KVBheIHVAjvstSWAcf2lYUs5vjjQFHay2i_01VjnJ2-snLptk/exec"; 
   
   // 系統全域變數
   let sysConfig = { groupSize: 3, waitlistCount: 1 };
@@ -407,6 +407,7 @@
     showLoader(true);
     fetch(GAS_API_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
     })
     .then(res => res.json())
@@ -466,6 +467,7 @@
       showLoader(true);
       fetch(GAS_API_URL, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'resetDefaults' })
       })
       .then(res => res.json())
