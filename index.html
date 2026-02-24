@@ -6,14 +6,13 @@
 <title>組隊報名系統</title>
 <style>
   :root {
-    /* 更鮮豔、現代的 APP 配色 */
-    --primary: #2563eb;       /* 主色：鮮豔藍 */
+    --primary: #2563eb;       
     --primary-light: #dbeafe; 
-    --success: #059669;       /* 成功/正取：翠綠色 */
-    --danger: #e11d48;        /* 危險/移除：玫瑰紅 */
-    --warning: #d97706;       /* 備取：琥珀橘 */
-    --info: #0ea5e9;          /* 資訊：天藍色 */
-    --bg-page: #f1f5f9;       /* 頁面背景：淺灰藍 */
+    --success: #059669;       
+    --danger: #e11d48;        
+    --warning: #d97706;       
+    --info: #0ea5e9;          
+    --bg-page: #f1f5f9;       
     --card-bg: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
@@ -28,12 +27,11 @@
   body {
     background: var(--bg-page); color: var(--text-main);
     font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
-    padding-bottom: 80px; /* 預留給手機版置底列的空間 */
+    padding-bottom: 80px; 
   }
   
   .wrap { max-width: 1200px; margin: 20px auto; padding: 0 16px; }
 
-  /* 頂部標題 - 漸層鮮豔色彩 */
   .header-title {
     font-size: 32px; font-weight: 900; text-align: center; margin-bottom: 20px;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #fff;
@@ -41,11 +39,10 @@
     letter-spacing: 2px;
   }
 
-  /* 提示訊息 */
   .toast {
     position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
     color: #fff; padding: 14px 28px; border-radius: 999px; box-shadow: var(--shadow-lg);
-    z-index: 1100; display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
+    z-index: 1500; display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
   }
   .toast.show { display: block; animation: popDown 0.3s ease forwards; }
   @keyframes popDown { from { top: -20px; opacity: 0; } to { top: 20px; opacity: 1; } }
@@ -53,10 +50,9 @@
   .toast.error { background: var(--danger); }
   .toast.info { background: var(--info); }
 
-  /* 載入中 */
   #loader {
-    position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 1000;
-    display: flex; justify-content: center; align-items: center; flex-direction: column;
+    position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 1400;
+    display: none; justify-content: center; align-items: center; flex-direction: column;
   }
   .spinner {
     width: 50px; height: 50px; border: 5px solid var(--primary-light);
@@ -64,7 +60,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* 版面配置 */
   .layout { display: flex; gap: 24px; flex-wrap: wrap; }
   .col-left { flex: 3; min-width: 320px; }
   .col-right { flex: 2; min-width: 320px; }
@@ -74,11 +69,10 @@
     padding: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px;
   }
 
-  /* 按鈕與控制列 */
   .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
   select { 
     padding: 12px 16px; border-radius: 12px; border: 2px solid #cbd5e1; 
-    font-size: 16px; min-width: 160px; font-weight: bold; outline: none;
+    font-size: 16px; min-width: 160px; font-weight: bold; outline: none; background: white;
   }
   select:focus { border-color: var(--primary); }
   
@@ -88,12 +82,14 @@
     display: inline-flex; align-items: center; justify-content: center;
   }
   .btn:active { transform: scale(0.95); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn.blue { background: var(--primary); }
   .btn.green { background: var(--success); }
   .btn.red { background: var(--danger); }
   .btn.yellow { background: var(--warning); color: #fff; }
   .btn.pink { background: #db2777; }
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
+  .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
   /* ===== APP 風格的學生名單 ===== */
   .stu-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
@@ -134,7 +130,7 @@
     background: var(--card-bg); border-left: 6px solid var(--primary);
     border-radius: 12px; padding: 16px;
     display: flex; justify-content: space-between; align-items: center;
-    box-shadow: var(--shadow-sm); border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;
+    box-shadow: var(--shadow-sm); border: 1px solid #e2e8f0; border-left-width: 6px;
   }
   
   .tag { border-radius: 8px; font-size: 14px; font-weight: 900; padding: 6px 12px; color: white; letter-spacing: 1px;}
@@ -155,7 +151,7 @@
   .vibrant-table th:first-child { border-top-left-radius: 12px; }
   .vibrant-table th:last-child { border-top-right-radius: 12px; }
 
-  /* ===== 手機版專屬：置底操作列 ===== */
+  /* 手機版置底操作列 */
   .mobile-bottom-bar {
     display: none; position: fixed; bottom: 0; left: 0; width: 100%;
     background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -164,12 +160,11 @@
     border-top: 1px solid #e2e8f0;
   }
   
-  /* 響應式設計 */
   @media (max-width: 768px) {
-    .col-main { order: 2; } /* 手機版：學生名單在下方 */
-    .col-side { order: 1; } /* 手機版：已選隊伍在上方 */
-    .mobile-bottom-bar { display: flex; } /* 顯示手機置底列 */
-    .desktop-submit-area { display: none; } /* 隱藏桌機版按鈕區 */
+    .col-main { order: 2; } 
+    .col-side { order: 1; } 
+    .mobile-bottom-bar { display: flex; } 
+    .desktop-submit-area { display: none; } 
     body { padding-bottom: 90px; }
     
     .header-title { font-size: 24px; padding: 15px; }
@@ -178,17 +173,33 @@
     .controls { flex-direction: column; align-items: stretch; }
   }
 
-  /* 管理員密碼視窗 */
+  /* Modals */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-    display: none; justify-content: center; align-items: center; z-index: 1200;
+    display: none; justify-content: center; align-items: center; z-index: 1200; overflow-y: auto; padding: 20px;
   }
-  .modal { background: #fff; padding: 30px; border-radius: 20px; width: 340px; text-align: center; box-shadow: var(--shadow-lg);}
+  .modal { background: #fff; padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; box-shadow: var(--shadow-lg); position: relative;}
+  .modal-large { max-width: 600px; }
+  
   .modal input { 
-    width: 100%; padding: 14px; margin: 20px 0; border: 2px solid #cbd5e1; 
-    border-radius: 12px; font-size: 18px; font-weight: bold; text-align: center;
+    width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; 
+    border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center;
   }
   .modal input:focus { border-color: var(--primary); outline: none; }
+
+  /* 進階設定按鈕網格 */
+  .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+  @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
+  
+  /* 基本設定表單 */
+  .settings-form { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+  .settings-form label { font-weight: bold; color: var(--text-main); font-size: 14px; margin-bottom: -5px;}
+  .settings-form input { text-align: left; margin: 0; padding: 10px; }
+
+  /* 跨班組隊選項區 */
+  .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
+  .cross-member-row select { width: 50%; min-width: unset; padding: 10px; border-radius: 8px; font-size: 15px;}
+
 </style>
 </head>
 <body>
@@ -212,20 +223,20 @@
 
     <div class="card">
       <div class="controls">
-        <select id="classSelect"><option value="">-- 請選擇班級 --</option></select>
-        <button class="btn blue" onclick="queryStudents()">🔍 查詢名單</button>
+        <select id="classSelect" onchange="queryStudents()">
+          <option value="">-- 請選擇班級 --</option>
+        </select>
         <button class="btn yellow" onclick="fetchSignedList()">📄 已報名名單</button>
-        <button class="btn outline" onclick="showAdminModal()">⚙️ 設定</button>
+        <button class="btn outline" onclick="showAdminModal()">⚙️ 進階設定</button>
       </div>
       
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid var(--primary); padding-bottom:10px; margin-top: 25px;">
         <h3 id="listTitle" style="margin:0; color:var(--primary); font-size: 22px;">班級學生列表</h3>
       </div>
       
-      <!-- 卡片式學生清單容器 -->
       <div id="studentListContainer" class="stu-list">
         <div style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-weight: bold; font-size: 18px; background: #f8fafc; border-radius: 16px; border: 2px dashed #cbd5e1;">
-          👆 請先由上方選擇班級並點擊查詢
+          👆 請先由上方選擇班級，系統將自動載入名單
         </div>
       </div>
     </div>
@@ -239,7 +250,7 @@
       </h3>
       
       <div class="group-info" id="groupRuleInfo">
-        設定：1組3 人，正取1組、備取1 組
+        設定：載入中...
       </div>
 
       <div class="selected-list" id="selectedListContainer">
@@ -271,18 +282,94 @@
   </div>
 </div>
 
+<!-- 選擇身分 Modal (獨立選取、不遞補) -->
+<div class="modal-overlay" id="roleSelectionModal">
+  <div class="modal">
+    <h3 style="margin-top:0; color: var(--primary);">選擇加入身分</h3>
+    <p style="font-size: 18px; font-weight: bold; color: var(--text-main);" id="roleModalStuName"></p>
+    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px;">
+      <button class="btn green" id="btnRoleMain" onclick="confirmAddRole('Main')" style="padding: 15px; font-size:18px;">正取 (0/0)</button>
+      <button class="btn yellow" id="btnRoleWait" onclick="confirmAddRole('Wait')" style="padding: 15px; font-size:18px;">備取 (0/0)</button>
+      <button class="btn outline-gray" onclick="closeAllModals()" style="margin-top: 10px;">取消</button>
+    </div>
+  </div>
+</div>
+
 <!-- 管理員密碼視窗 -->
-<div class="modal-overlay" id="adminModal">
+<div class="modal-overlay" id="adminPwdModal">
   <div class="modal">
     <h3 style="margin-top:0; color: var(--danger);">管理員驗證</h3>
-    <p style="color: var(--text-muted); font-size: 14px; margin:0;">重設資料專用</p>
     <input type="password" id="adminPwd" placeholder="請輸入密碼" maxlength="6" inputmode="numeric">
-    <div style="display: flex; gap: 10px; margin-top: 10px;">
-      <button class="btn outline" style="flex:1;" onclick="document.getElementById('adminModal').style.display='none'">取消</button>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="closeAllModals()">取消</button>
       <button class="btn red" style="flex:1;" onclick="verifyAdmin()">確定</button>
     </div>
   </div>
 </div>
+
+<!-- 進階設定主選單 (10個按鈕) -->
+<div class="modal-overlay" id="advancedMenuModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--text-main);">⚙️ 進階設定</h3>
+    <div class="adv-grid">
+      <button class="btn outline" style="color:var(--danger); border-color:var(--danger);" onclick="confirmResetDefaults()">1. 回復預設值</button>
+      <button class="btn blue" onclick="openBasicSettings()">2. 基本資料設定</button>
+      <button class="btn outline-gray" onclick="window.open('https://script.google.com/a/macros/fjm.kh.edu.tw/s/AKfycbzg_pBsmpXIe5PX3B7cdF1IImXLVzUvEm8yuU3JLYZzaTYQ_5Ctn-0ooP5XfSLb_FVB/exec','_blank')">3. 學務處公假單</button>
+      <button class="btn outline-gray" onclick="window.open('#','_blank')">4. 班級公假單</button>
+      <button class="btn outline-gray" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')">5. 雲端資料夾</button>
+      <button class="btn outline-gray" onclick="openCrossClassModal()">6. 跨班組隊</button>
+      <button class="btn outline-gray">7. (預備功能)</button>
+      <button class="btn outline-gray">8. (預備功能)</button>
+      <button class="btn outline-gray">9. (預備功能)</button>
+      <button class="btn outline-gray">10. (預備功能)</button>
+    </div>
+    <button class="btn outline-gray" style="margin-top:25px; width: 100%;" onclick="closeAllModals()">關閉</button>
+  </div>
+</div>
+
+<!-- 基本資料設定 Modal -->
+<div class="modal-overlay" id="basicSettingsModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--primary);">📝 基本資料設定</h3>
+    <div class="settings-form" id="settingsFormContainer">
+      <!-- JS 動態生成表單 -->
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('basicSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn green" style="flex:1;" onclick="saveBasicSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 跨班組隊 Modal -->
+<div class="modal-overlay" id="crossClassModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--primary);">🌍 跨班組隊</h3>
+    <p style="color: var(--text-muted); font-weight: bold;">請選擇 3 位學生組成跨班隊伍：</p>
+    <div id="crossClassMembers" style="margin-top: 20px;">
+      <!-- 隊員 1 -->
+      <div class="cross-member-row">
+        <select id="ccClass1" onchange="fetchCrossStudents(1)"></select>
+        <select id="ccStudent1"><option value="">-- 先選班級 --</option></select>
+      </div>
+      <!-- 隊員 2 -->
+      <div class="cross-member-row">
+        <select id="ccClass2" onchange="fetchCrossStudents(2)"></select>
+        <select id="ccStudent2"><option value="">-- 先選班級 --</option></select>
+      </div>
+      <!-- 隊員 3 -->
+      <div class="cross-member-row">
+        <select id="ccClass3" onchange="fetchCrossStudents(3)"></select>
+        <select id="ccStudent3"><option value="">-- 先選班級 --</option></select>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 25px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('crossClassModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn green" style="flex:1;" onclick="submitCrossClassTeam()">送出跨班組隊</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
   // ==========================================
@@ -290,16 +377,13 @@
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbww9F0m7-6g3d9toQ8KVBheIHVAjvstSWAcf2lYUs5vjjQFHay2i_01VjnJ2-snLptk/exec"; 
   
-  // 系統全域變數
-  let sysConfig = { groupSize: 3, waitlistCount: 1 };
+  let sysConfig = { groupSize: 3, mainGroups: 1, waitlistCount: 1 };
   let currentClassStudents = []; 
+  let sysClasses = []; // 保存所有班級列表 (跨班組隊用)
   
-  // 狀態管理中心：負責管理自動載入與使用者編輯
-  let sysState = {
-      dbRegistered: new Map(), // 記錄從資料庫撈出時 E==1 的所有學生
-      userRemoved: new Set()   // 記錄使用者在此次編輯中「主動移除」的學生 ID
-  };
-  let selectedTeam = []; // 實際顯示在右側的隊伍名單
+  let sysState = { dbRegistered: new Map(), userRemoved: new Set() };
+  let selectedTeam = []; 
+  let pendingAddRowIndex = null;
 
   // ================== UI 輔助函式 ==================
   function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
@@ -307,6 +391,9 @@
     const el = document.getElementById('toast');
     el.textContent = msg; el.className = 'toast ' + type + ' show';
     setTimeout(() => el.classList.remove('show'), 3000);
+  }
+  function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
   }
 
   // ================== 初始化載入 ==================
@@ -321,7 +408,9 @@
         document.title = data.title;
         
         sysConfig.groupSize = data.groupSize || 3;
+        sysConfig.mainGroups = data.mainGroups || 1;
         sysConfig.waitlistCount = data.waitlistCount || 1;
+        sysClasses = data.classes || [];
         updateGroupRuleText();
 
         if(data.notices && data.notices.length > 0) {
@@ -330,7 +419,7 @@
         }
 
         const select = document.getElementById('classSelect');
-        data.classes.forEach(c => {
+        sysClasses.forEach(c => {
           let opt = document.createElement('option');
           opt.value = c; opt.text = c + " 班";
           select.appendChild(opt);
@@ -346,13 +435,24 @@
 
   function updateGroupRuleText() {
     document.getElementById('groupRuleInfo').textContent = 
-      `📌 設定：1組${sysConfig.groupSize}人，正取1組、備取${sysConfig.waitlistCount}組`;
+      `📌 設定：1組${sysConfig.groupSize}人，正取${sysConfig.mainGroups}組、備取${sysConfig.waitlistCount}組`;
   }
 
   // ================== 查詢班級學生 ==================
   function queryStudents() {
     const cls = document.getElementById('classSelect').value;
-    if(!cls) return showToast("請先選擇班級", "error");
+    
+    // 【修改邏輯2】：只要切換班級，一律清空右側狀態！
+    sysState.dbRegistered.clear();
+    sysState.userRemoved.clear();
+    selectedTeam = [];
+    renderSelectedList();
+    
+    if(!cls) {
+        document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">👆 請先由上方選擇班級，系統將自動載入名單</div>`;
+        document.getElementById('listTitle').textContent = `班級學生列表`;
+        return; 
+    }
 
     showLoader(true);
     fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}`)
@@ -364,18 +464,17 @@
         currentClassStudents = data.rows;
         document.getElementById('listTitle').textContent = `${cls} 班級學生列表`;
 
-        // 將已報名的學生寫入狀態中，並自動丟到右邊隊伍
         currentClassStudents.forEach(stu => {
             if (stu.E == 1 || stu.E == '1') {
                 sysState.dbRegistered.set(stu.rowIndex, stu);
-                // 如果沒有被使用者手動移除過，且還沒在右側清單裡，就自動加進去
                 if (!sysState.userRemoved.has(stu.rowIndex) && !selectedTeam.some(s => s.rowIndex === stu.rowIndex)) {
+                    stu.targetLabel = stu.F || '';
+                    stu.tagClass = stu.targetLabel.includes('正取') ? 'main' : (stu.targetLabel.includes('備取') ? 'wait' : 'primary');
                     selectedTeam.push({...stu});
                 }
             }
         });
 
-        refreshTeamLabels();
         renderStudentList();
         renderSelectedList();
       })
@@ -384,7 +483,6 @@
       });
   }
 
-  // 渲染左側卡片清單 (動態顯示加入或取消狀態)
   function renderStudentList() {
     const container = document.getElementById('studentListContainer');
     container.innerHTML = '';
@@ -395,7 +493,6 @@
     }
 
     currentClassStudents.forEach(stu => {
-      // 判斷狀態
       const isSelected = selectedTeam.some(s => s.rowIndex === stu.rowIndex);
       const isRegisteredInDb = sysState.dbRegistered.has(stu.rowIndex);
 
@@ -404,26 +501,26 @@
       let btnHtml = '';
 
       if (isSelected) {
-          // 目前在右側隊伍中
           cardClass += ' selected';
           statusHtml = '<span class="status-text" style="color:var(--primary);">🔵 已選取</span>';
-          btnHtml = `<button class="action-btn remove" onclick="toggleSelect(${stu.rowIndex}, event)">移除</button>`;
+          btnHtml = `<button class="action-btn remove" onclick="handleRemove(${stu.rowIndex}, event)">移除</button>`;
       } else if (isRegisteredInDb) {
-          // 在資料庫中已報名，但被從右側隊伍中移除了 -> 準備被取消報名
           cardClass += ' to-cancel';
           statusHtml = '<span class="status-text" style="color:var(--danger);">❌ 待取消</span>';
-          btnHtml = `<button class="action-btn restore" onclick="toggleSelect(${stu.rowIndex}, event)">加回</button>`;
+          btnHtml = `<button class="action-btn restore" onclick="handleRestore(${stu.rowIndex}, event)">加回</button>`;
       } else {
-          // 乾淨的未報名狀態
           statusHtml = '<span class="status-text" style="color:var(--text-muted);">⚪ 未報名</span>';
-          btnHtml = `<button class="action-btn add" onclick="toggleSelect(${stu.rowIndex}, event)">加入 +</button>`;
+          btnHtml = `<button class="action-btn add" onclick="openRoleModal(${stu.rowIndex}, event)">加入 +</button>`;
       }
 
       const div = document.createElement('div');
       div.className = cardClass;
       
-      // 卡片整體點擊事件
-      div.onclick = (e) => toggleSelect(stu.rowIndex, e);
+      div.onclick = (e) => {
+        if (isSelected) handleRemove(stu.rowIndex, e);
+        else if (isRegisteredInDb) handleRestore(stu.rowIndex, e);
+        else openRoleModal(stu.rowIndex, e);
+      };
       
       div.innerHTML = `
         <div class="stu-info">
@@ -440,34 +537,75 @@
   }
 
   // ================== 加入與移除邏輯 ==================
-  function toggleSelect(rowIndex, event) {
+  
+  function handleRemove(rowIndex, event) {
+      if(event) event.stopPropagation();
+      const existingIdx = selectedTeam.findIndex(s => s.rowIndex === rowIndex);
+      if (existingIdx > -1) {
+          selectedTeam.splice(existingIdx, 1);
+          if (sysState.dbRegistered.has(rowIndex)) sysState.userRemoved.add(rowIndex);
+      }
+      renderStudentList();
+      renderSelectedList();
+  }
+
+  function handleRestore(rowIndex, event) {
+      if(event) event.stopPropagation();
+      const dbStu = sysState.dbRegistered.get(rowIndex);
+      if (dbStu) {
+          sysState.userRemoved.delete(rowIndex);
+          dbStu.targetLabel = dbStu.F || '';
+          dbStu.tagClass = dbStu.targetLabel.includes('正取') ? 'main' : 'wait';
+          selectedTeam.push({...dbStu});
+      }
+      renderStudentList();
+      renderSelectedList();
+  }
+
+  // 【修改邏輯1】：開啟身分選擇 Modal (獨立算人數，不影響原有排序)
+  function openRoleModal(rowIndex, event) {
       if(event) event.stopPropagation();
       
-      const existingIdx = selectedTeam.findIndex(s => s.rowIndex === rowIndex);
+      pendingAddRowIndex = rowIndex;
+      const stu = currentClassStudents.find(s => s.rowIndex === rowIndex);
+      document.getElementById('roleModalStuName').textContent = `將「${stu.C}」加入為：`;
+
+      const mainLimit = sysConfig.groupSize * sysConfig.mainGroups;
+      const waitLimit = sysConfig.groupSize * sysConfig.waitlistCount;
       
-      if (existingIdx > -1) {
-          // 1. 如果已在隊伍中，將他移除
-          selectedTeam.splice(existingIdx, 1);
-          // 如果他原本是資料庫裡的已報名者，標記他為「使用者手動移除 (待取消)」
-          if (sysState.dbRegistered.has(rowIndex)) {
-              sysState.userRemoved.add(rowIndex);
-          }
+      let currentMain = 0;
+      let currentWait = 0;
+      selectedTeam.forEach(s => {
+          if(s.targetLabel && s.targetLabel.includes('正取')) currentMain++;
+          else if(s.targetLabel && s.targetLabel.includes('備取')) currentWait++;
+      });
+
+      const btnMain = document.getElementById('btnRoleMain');
+      const btnWait = document.getElementById('btnRoleWait');
+
+      btnMain.textContent = `正取 (${currentMain}/${mainLimit})`;
+      btnMain.disabled = currentMain >= mainLimit; // 額滿反灰
+      
+      btnWait.textContent = `備取 (${currentWait}/${waitLimit})`;
+      btnWait.disabled = currentWait >= waitLimit; // 額滿反灰
+
+      document.getElementById('roleSelectionModal').style.display = 'flex';
+  }
+
+  function confirmAddRole(roleType) {
+      const stu = currentClassStudents.find(s => s.rowIndex === pendingAddRowIndex);
+      const cls = document.getElementById('classSelect').value;
+      
+      if(roleType === 'Main') {
+          stu.targetLabel = `${cls}-正取`;
+          stu.tagClass = 'main';
       } else {
-          // 2. 如果不在隊伍中，將他加入
-          const maxTotal = sysConfig.groupSize + (sysConfig.groupSize * sysConfig.waitlistCount);
-          if (selectedTeam.length >= maxTotal) {
-              return showToast(`已達隊伍人數上限 (${maxTotal}人)！`, "error");
-          }
-          
-          // 嘗試從當前畫面或資料庫抓取該學生資料
-          let stu = currentClassStudents.find(s => s.rowIndex === rowIndex) || sysState.dbRegistered.get(rowIndex);
-          if (stu) {
-              selectedTeam.push({...stu});
-              sysState.userRemoved.delete(rowIndex); // 既然加回來了，就清除移除標記
-          }
+          stu.targetLabel = `${cls}-備取1`;
+          stu.tagClass = 'wait';
       }
 
-      refreshTeamLabels();
+      selectedTeam.push({...stu});
+      closeAllModals();
       renderStudentList();
       renderSelectedList();
   }
@@ -475,35 +613,16 @@
   function clearSelected() {
       if(selectedTeam.length === 0) return;
       if(confirm("確定要清空右側名單嗎？\n(若名單內有已報名學生，送出後將會被取消報名)")) {
-          // 將被清空的原本已報名學生標記為 userRemoved
           selectedTeam.forEach(s => {
-              if (sysState.dbRegistered.has(s.rowIndex)) {
-                  sysState.userRemoved.add(s.rowIndex);
-              }
+              if (sysState.dbRegistered.has(s.rowIndex)) sysState.userRemoved.add(s.rowIndex);
           });
           selectedTeam = [];
-          refreshTeamLabels();
           renderStudentList();
           renderSelectedList();
       }
   }
 
-  // ================== 右側名單渲染與標籤計算 ==================
-  function refreshTeamLabels() {
-      // 用隊伍裡第一個人的班級當作這組的標籤前綴
-      const mainClass = selectedTeam.length > 0 ? selectedTeam[0].A : '';
-      selectedTeam.forEach((s, idx) => {
-          if (idx < sysConfig.groupSize) {
-              s.targetLabel = `${mainClass}-正取`;
-              s.tagClass = 'main';
-          } else {
-              const waitlistNum = Math.floor((idx - sysConfig.groupSize) / sysConfig.groupSize) + 1;
-              s.targetLabel = `${mainClass}-備取${waitlistNum}`;
-              s.tagClass = 'wait';
-          }
-      });
-  }
-
+  // 【修改邏輯1】：渲染右側名單，一律依 正取 > 備取 > 座號 排序
   function renderSelectedList() {
       const container = document.getElementById('selectedListContainer');
       document.getElementById('mobileSelectedCount').innerText = selectedTeam.length;
@@ -513,18 +632,31 @@
           return;
       }
 
-      container.innerHTML = selectedTeam.map(s => `
-        <div class="selected-item" style="border-left-color: ${s.tagClass === 'main' ? 'var(--success)' : 'var(--warning)'};">
-          <div style="display:flex; flex-direction:column; gap:4px;">
-            <span style="font-size:14px; color:var(--text-muted); font-weight:bold;">${s.A}班 - ${s.B}號</span>
-            <strong style="font-size:18px; color:var(--text-main);">${s.C}</strong>
+      // 排序邏輯
+      selectedTeam.sort((a, b) => {
+          const aIsMain = a.tagClass === 'main';
+          const bIsMain = b.tagClass === 'main';
+          if (aIsMain && !bIsMain) return -1;
+          if (!aIsMain && bIsMain) return 1;
+          // 身分相同時排座號
+          return parseInt(a.B) - parseInt(b.B);
+      });
+
+      container.innerHTML = selectedTeam.map(s => {
+        const borderCol = s.tagClass === 'main' ? 'var(--success)' : 'var(--warning)';
+        return `
+          <div class="selected-item" style="border-left-color: ${borderCol};">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span style="font-size:14px; color:var(--text-muted); font-weight:bold;">${s.A}班 - ${s.B}號</span>
+              <strong style="font-size:18px; color:var(--text-main);">${s.C}</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="tag ${s.tagClass}">${s.targetLabel || '未定'}</span>
+              <button class="remove-btn-small" onclick="handleRemove(${s.rowIndex}, event)">✕</button>
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="tag ${s.tagClass}">${s.targetLabel}</span>
-            <button class="remove-btn-small" onclick="toggleSelect(${s.rowIndex}, event)">✕</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
   }
 
   // ================== 統一送出變更 ==================
@@ -532,29 +664,25 @@
       const payload = [];
       let hasChanges = false;
 
-      // 1. 處理「取消報名」：原本在資料庫裡有報名，但現在不在右側隊伍裡的學生
+      // 取消報名
       sysState.dbRegistered.forEach((dbStu, rowIndex) => {
-          const isStillSelected = selectedTeam.some(s => s.rowIndex === rowIndex);
-          if (!isStillSelected) {
-              payload.push({ rowIndex: rowIndex, E: 0, F: '' }); // 參加設為0，組別清空
+          if (!selectedTeam.some(s => s.rowIndex === rowIndex)) {
+              payload.push({ rowIndex: rowIndex, E: 0, F: '' }); 
               hasChanges = true;
           }
       });
 
-      // 2. 處理「加入與更新」：現在在右側隊伍裡的所有學生
+      // 加入與更新
       selectedTeam.forEach(s => {
-          // 全部重新傳送一次最新標籤，確保正取/備取的升降可以被正確更新
           payload.push({ rowIndex: s.rowIndex, E: 1, F: s.targetLabel });
           hasChanges = true;
       });
 
-      if (!hasChanges && payload.length === 0) {
-          // 如果真的連一筆都沒有
-          return showToast("沒有任何變更可以送出！", "error");
-      }
+      if (!hasChanges && payload.length === 0) return showToast("沒有任何變更可以送出！", "error");
 
-      if (selectedTeam.length > 0 && selectedTeam.length < sysConfig.groupSize) {
-          if(!confirm(`目前隊伍僅 ${selectedTeam.length} 人，未達一組正取人數(${sysConfig.groupSize}人)\n確定要送出嗎？`)) return;
+      const totalExpected = sysConfig.groupSize * (sysConfig.mainGroups + sysConfig.waitlistCount);
+      if (selectedTeam.length > 0 && selectedTeam.length !== totalExpected) {
+          if(!confirm(`目前隊伍共 ${selectedTeam.length} 人，不符合完整編制 (${totalExpected} 人)\n確定要直接送出嗎？`)) return;
       } else if (payload.length > 0) {
           if(!confirm(`確定要儲存目前的組隊異動嗎？`)) return;
       }
@@ -572,7 +700,6 @@
         
         showToast("🎉 報名與變更已成功送出！");
         
-        // 重置狀態，等待下一次操作
         sysState.dbRegistered.clear();
         sysState.userRemoved.clear();
         selectedTeam = []; 
@@ -585,7 +712,7 @@
       });
   }
 
-  // ================== 檢視已報名清單 ==================
+  // ================== 檢視已報名清單 (擴充欄位) ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList`)
@@ -595,11 +722,13 @@
         if(data.error) throw new Error(data.error);
         if(!data.rows || data.rows.length === 0) return showToast("目前無人報名", "info");
 
-        const groupColIdx = data.headers.findIndex(h => h.includes('組別'));
+        // 支援正式組別與組別
+        const groupColIdx = data.headers.findIndex(h => h === '組別');
+        const officialColIdx = data.headers.findIndex(h => h === '正式組別');
 
         const thead = `<tr>${data.headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
         const tbody = data.rows.map(r => `<tr>${r.map((c, i) => {
-            if (i === groupColIdx && c) {
+            if ((i === groupColIdx || i === officialColIdx) && c) {
                 let tagClass = c.includes('正取') ? 'main' : (c.includes('備取') ? 'wait' : 'primary');
                 return `<td><span class="tag ${tagClass}" style="display:inline-block; padding: 6px 12px; font-size:14px;">${c}</span></td>`;
             }
@@ -621,45 +750,183 @@
       });
   }
 
-  // ================== 管理員進階設定 ==================
+  // ================== 管理員進階設定與驗證 ==================
   function showAdminModal() {
     document.getElementById('adminPwd').value = '';
-    document.getElementById('adminModal').style.display = 'flex';
+    document.getElementById('adminPwdModal').style.display = 'flex';
   }
 
   function verifyAdmin() {
     const pwd = document.getElementById('adminPwd').value;
-    if(pwd !== '000000') {
-      showToast("密碼錯誤", "error");
-      return;
-    }
-    document.getElementById('adminModal').style.display = 'none';
+    if(pwd !== '000000') return showToast("密碼錯誤", "error");
     
-    if(confirm("管理員您好！\n是否要清除「所有學生」的報名紀錄(恢復預設值)？\n⚠️ 警告：此動作無法復原！")) {
-      showLoader(true);
-      fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'resetDefaults' })
-      })
+    document.getElementById('adminPwdModal').style.display = 'none';
+    document.getElementById('advancedMenuModal').style.display = 'flex';
+  }
+
+  function confirmResetDefaults() {
+    if(!confirm("⚠️ 警告：這將清除「所有學生」的報名紀錄(恢復預設值)！\n此動作無法復原，確定要執行嗎？")) return;
+    
+    closeAllModals();
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'resetDefaults' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("已恢復預設值！所有名單已清空。");
+      currentClassStudents = [];
+      sysState.dbRegistered.clear();
+      sysState.userRemoved.clear();
+      selectedTeam = [];
+      renderSelectedList();
+      document.getElementById('listTitle').textContent = "班級學生列表";
+      document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
+    })
+    .catch(err => {
+      showLoader(false); showToast("重設失敗: " + err.message, "error");
+    });
+  }
+
+  // ================== 基本資料設定 ==================
+  function openBasicSettings() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    showLoader(true);
+    
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getBasicSettings' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      
+      const formContainer = document.getElementById('settingsFormContainer');
+      formContainer.innerHTML = '';
+      
+      data.data.forEach((row, idx) => {
+          if(!row[0]) return; 
+          const div = document.createElement('div');
+          div.innerHTML = `
+              <label>${row[0]}</label>
+              <input type="text" id="settingInput_${idx}" value="${row[1] || ''}" />
+          `;
+          formContainer.appendChild(div);
+      });
+      
+      document.getElementById('basicSettingsModal').style.display = 'flex';
+    })
+    .catch(err => {
+      showLoader(false); showToast("讀取設定失敗: " + err.message, "error");
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
+  }
+
+  function saveBasicSettings() {
+    const payload = [];
+    const inputs = document.querySelectorAll('#settingsFormContainer input');
+    inputs.forEach((input, idx) => {
+        payload.push([null, input.value.trim()]);
+    });
+
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'saveBasicSettings', payload: payload })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("設定已成功儲存，即將重新載入頁面！");
+      setTimeout(() => window.location.reload(), 1500);
+    })
+    .catch(err => {
+      showLoader(false); showToast("儲存設定失敗: " + err.message, "error");
+    });
+  }
+
+  // ================== 【修改邏輯3】跨班組隊 ==================
+  function openCrossClassModal() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    
+    // 初始化班級下拉選單
+    [1, 2, 3].forEach(num => {
+        const clsSel = document.getElementById(`ccClass${num}`);
+        clsSel.innerHTML = '<option value="">-- 選擇班級 --</option>';
+        sysClasses.forEach(c => {
+            clsSel.innerHTML += `<option value="${c}">${c} 班</option>`;
+        });
+        document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
+    });
+    
+    document.getElementById('crossClassModal').style.display = 'flex';
+  }
+
+  function fetchCrossStudents(num) {
+    const cls = document.getElementById(`ccClass${num}`).value;
+    const stuSel = document.getElementById(`ccStudent${num}`);
+    if(!cls) {
+        stuSel.innerHTML = '<option value="">-- 先選班級 --</option>';
+        return;
+    }
+    
+    stuSel.innerHTML = '<option value="">載入中...</option>';
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}`)
       .then(res => res.json())
       .then(data => {
-        showLoader(false);
-        if(data.error) throw new Error(data.error);
-        showToast("已恢復預設值！所有名單已清空。");
-        currentClassStudents = [];
-        sysState.dbRegistered.clear();
-        sysState.userRemoved.clear();
-        selectedTeam = [];
-        renderSelectedList();
-        document.getElementById('listTitle').textContent = "班級學生列表";
-        document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
+          if(data.error) throw new Error(data.error);
+          stuSel.innerHTML = '<option value="">-- 選擇學生 --</option>';
+          data.rows.forEach(stu => {
+              const isReg = (stu.E == 1 || stu.E == '1');
+              const mark = isReg ? ' (已報名)' : '';
+              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${mark}</option>`;
+          });
       })
       .catch(err => {
-        showLoader(false); showToast("重設失敗: " + err.message, "error");
+          stuSel.innerHTML = '<option value="">載入失敗</option>';
+          showToast("載入學生失敗", "error");
       });
-    }
   }
+
+  function submitCrossClassTeam() {
+    const stu1 = document.getElementById('ccStudent1').value;
+    const stu2 = document.getElementById('ccStudent2').value;
+    const stu3 = document.getElementById('ccStudent3').value;
+
+    if(!stu1 || !stu2 || !stu3) return showToast("請完整選擇 3 位學生！", "error");
+    
+    if(new Set([stu1, stu2, stu3]).size !== 3) return showToast("不能選擇重複的學生！", "error");
+
+    if(!confirm("確定要將這 3 位學生組成跨班隊伍嗎？")) return;
+
+    showLoader(true);
+    fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'saveCrossClassTeam', payload: [stu1, stu2, stu3] })
+    })
+    .then(res => res.json())
+    .then(data => {
+        showLoader(false);
+        if(data.error) throw new Error(data.error);
+        showToast(`🎉 跨班組隊成功！組別為：${data.newTeam}`);
+        closeAllModals();
+        if(document.getElementById('classSelect').value) queryStudents(); 
+    })
+    .catch(err => {
+        showLoader(false);
+        showToast("跨班組隊失敗: " + err.message, "error");
+    });
+  }
+
 </script>
 </body>
 </html>
