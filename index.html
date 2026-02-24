@@ -152,7 +152,7 @@
   /* 已報名名單表格專用 (鮮豔樣式) */
   .vibrant-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 500px; }
   .vibrant-table th { background: var(--primary); color: white; padding: 16px; text-align: left; font-size: 16px;}
-  .vibrant-table td { padding: 16px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 16px; font-weight: bold;}
+  .vibrant-table td { padding: 16px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 16px; font-weight: bold; vertical-align: middle;}
   .vibrant-table tr:hover td { background: #f8fafc; }
   .vibrant-table th:first-child { border-top-left-radius: 12px; }
   .vibrant-table th:last-child { border-top-right-radius: 12px; }
@@ -314,7 +314,7 @@
   let sysConfig = { groupSize: 3, waitlistCount: 1 };
   let currentClassStudents = []; 
   
-  // 存放所有待處理的變更任務 (取代原本單純的 selectedTeam)
+  // 存放所有待處理的變更任務
   // { id, type: 'ADD'|'REPLACE'|'CANCEL', student/oldStudent/newStudent }
   let pendingActions = []; 
   let replaceTargetRowIndex = null; // 紀錄目前開啟 Modal 時的對象
@@ -684,8 +684,18 @@
         if(data.error) throw new Error(data.error);
         if(!data.rows || data.rows.length === 0) return showToast("目前無人報名", "info");
 
+        // 偵測「組別」欄位在哪一欄
+        const groupColIdx = data.headers.findIndex(h => h.includes('組別'));
+
         const thead = `<tr>${data.headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-        const tbody = data.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+        const tbody = data.rows.map(r => `<tr>${r.map((c, i) => {
+            // 如果這欄是組別，且有資料，就轉換為漂亮的標籤
+            if (i === groupColIdx && c) {
+                let tagClass = c.includes('正取') ? 'main' : (c.includes('備取') ? 'wait' : 'primary');
+                return `<td><span class="tag ${tagClass}" style="display:inline-block; padding: 6px 12px; font-size:14px;">${c}</span></td>`;
+            }
+            return `<td>${c}</td>`;
+        }).join('')}</tr>`).join('');
         
         document.getElementById('listTitle').textContent = "全校已報名名單";
         document.getElementById('studentListContainer').innerHTML = `
