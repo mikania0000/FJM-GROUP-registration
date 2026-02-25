@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.7</title>
+<title>報名系統 v2.8</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -48,6 +48,11 @@
     opacity: 0.8;
     margin-left: 8px;
     letter-spacing: normal;
+  }
+  
+  .version-error {
+    color: #ffd700;
+    font-weight: bold;
   }
 
   .toast {
@@ -195,7 +200,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.7</span>
+    報名系統 <span class="version-text">連線中...</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -366,8 +371,11 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.7</span>`;
+        // ★ 超級偵測機制：如果沒抓到 data.version，代表後端還是舊版！
+        const backendVer = data.version ? data.version : '<span class="version-error">未更新(舊版)</span>';
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.8 / 後端${backendVer}</span>`;
         document.title = data.title;
+        
         sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
 
