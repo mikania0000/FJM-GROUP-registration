@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.8</title>
+<title>報名系統 v2.9</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -321,9 +321,9 @@
 
 <script>
   // ==========================================
-  // ⚠️ 部署設定區：請替換為您的 GAS 網頁應用程式網址
+  // ⚠️ 這裡已經換上您提供的最新 GAS API 網址！
   // ==========================================
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbww9F0m7-6g3d9toQ8KVBheIHVAjvstSWAcf2lYUs5vjjQFHay2i_01VjnJ2-snLptk/exec"; 
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
   let sysConfig = {};
   let currentClassStudents = []; 
@@ -371,9 +371,9 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        // ★ 超級偵測機制：如果沒抓到 data.version，代表後端還是舊版！
+        // ★ 偵測機制：確定有連線到新版後端
         const backendVer = data.version ? data.version : '<span class="version-error">未更新(舊版)</span>';
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.8 / 後端${backendVer}</span>`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9 / 後端${backendVer}</span>`;
         document.title = data.title;
         
         sysConfig = data; // 存入全域設定
@@ -654,7 +654,7 @@
             return;
         }
 
-        // ================== 多層次排序演算法 ==================
+        // 排序演算法：跨班排最後 ➔ 正式組別 ➔ 班級 ➔ 正/備取 ➔ 座號
         data.rows.sort((a, b) => {
             const groupA = String(a.group || '');
             const groupB = String(b.group || '');
@@ -662,7 +662,6 @@
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
-            // 1. 跨班一律排在最後面
             if (isCrossA && !isCrossB) return 1;
             if (!isCrossA && isCrossB) return -1;
             if (isCrossA && isCrossB) {
@@ -674,7 +673,6 @@
                 return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
-            // 2. 依正式組別排 (第X組)
             const offA = String(a.officialGroup || '').trim();
             const offB = String(b.officialGroup || '').trim();
             if (offA && !offB) return -1;
@@ -685,11 +683,9 @@
                 if (numA !== numB) return numA - numB;
             }
 
-            // 3. 一般班級排序
             const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
             if (classCmp !== 0) return classCmp;
 
-            // 4. 正取在前、備取在後
             const isMainA = groupA.includes('正取') || groupA.includes('個人');
             const isMainB = groupB.includes('正取') || groupB.includes('個人');
             if (isMainA && !isMainB) return -1;
@@ -701,7 +697,6 @@
                 if (numA !== numB) return numA - numB;
             }
 
-            // 5. 座號排序
             return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
         });
 
