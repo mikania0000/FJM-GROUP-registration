@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9</title>
+<title>報名系統 v2.9.1</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -148,11 +148,15 @@
   .vibrant-table tr:hover td { background: #f8fafc; }
   .vibrant-table th:first-child { border-top-left-radius: 12px; }
   .vibrant-table th:last-child { border-top-right-radius: 12px; }
+  
+  /* 修正隱形 Bug 的 CSS 樣式 */
   .tag { border-radius: 8px; font-size: 14px; font-weight: 900; padding: 6px 12px; color: white; letter-spacing: 1px; display:inline-block;}
   .tag.main { background: var(--success); }
   .tag.wait { background: var(--warning); }
   .tag.primary { background: var(--primary); }
   .tag.gray { background: var(--text-muted); }
+  .tag.success { background: #10b981; }
+  .tag.purple { background: #8b5cf6; } /* 正式組別專屬紫色 */
 
   /* Modals 共用樣式 */
   .modal-overlay {
@@ -373,7 +377,7 @@
         
         // ★ 偵測機制：確定有連線到新版後端
         const backendVer = data.version ? data.version : '<span class="version-error">未更新(舊版)</span>';
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9 / 後端${backendVer}</span>`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9.1 / 後端${backendVer}</span>`;
         document.title = data.title;
         
         sysConfig = data; // 存入全域設定
@@ -610,7 +614,7 @@
       }, "確定送出", "blue");
   }
 
-  // ================== 全校已報名清單 ==================
+  // ================== 全校已報名清單 (修正白字白底 Bug) ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
@@ -702,10 +706,9 @@
 
         const thead = `<tr><th>班級</th><th>座號</th><th>姓名</th><th>學號</th><th>組別</th><th>正式組別</th><th style="text-align:center;">操作</th></tr>`;
         const tbody = data.rows.map(r => {
+            // ★ 修正白字白底 Bug：確保原始組別保留原本的顏色
             let tagClass = 'gray';
-            if (r.officialGroup) {
-                tagClass = 'success';
-            } else if (r.group.includes('正取') || r.group.includes('個人')) {
+            if (r.group.includes('正取') || r.group.includes('個人')) {
                 tagClass = 'main';
             } else if (r.group.includes('備取')) {
                 tagClass = 'wait';
@@ -713,8 +716,9 @@
                 tagClass = 'primary';
             }
             
+            // 正式組別給予專屬的紫色 (purple 類別已加在 CSS)
             const officialHtml = r.officialGroup 
-                ? `<span class="tag success" style="font-size:16px;">${r.officialGroup}</span>` 
+                ? `<span class="tag purple" style="font-size:16px;">${r.officialGroup}</span>` 
                 : `<span class="tag gray" style="background:transparent; color:transparent;">-</span>`;
 
             return `
