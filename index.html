@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.1</title>
+<title>報名系統 v2.9.2</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -149,14 +149,24 @@
   .vibrant-table th:first-child { border-top-left-radius: 12px; }
   .vibrant-table th:last-child { border-top-right-radius: 12px; }
   
-  /* 修正隱形 Bug 的 CSS 樣式 */
+  /* 標籤與群組顏色樣式 */
   .tag { border-radius: 8px; font-size: 14px; font-weight: 900; padding: 6px 12px; color: white; letter-spacing: 1px; display:inline-block;}
   .tag.main { background: var(--success); }
   .tag.wait { background: var(--warning); }
   .tag.primary { background: var(--primary); }
-  .tag.gray { background: var(--text-muted); }
-  .tag.success { background: #10b981; }
-  .tag.purple { background: #8b5cf6; } /* 正式組別專屬紫色 */
+  .tag.gray { background: #e2e8f0; color: transparent; } /* 透明的佔位符 */
+  
+  /* 動態分配的 10 種組別顏色 */
+  .tag.group-color-0 { background: #8b5cf6; } /* 紫色 */
+  .tag.group-color-1 { background: #ec4899; } /* 粉色 */
+  .tag.group-color-2 { background: #3b82f6; } /* 藍色 */
+  .tag.group-color-3 { background: #f97316; } /* 橘色 */
+  .tag.group-color-4 { background: #14b8a6; } /* 藍綠 */
+  .tag.group-color-5 { background: #eab308; } /* 黃色 */
+  .tag.group-color-6 { background: #ef4444; } /* 紅色 */
+  .tag.group-color-7 { background: #06b6d4; } /* 青色 */
+  .tag.group-color-8 { background: #10b981; } /* 翠綠 */
+  .tag.group-color-9 { background: #6366f1; } /* 靛藍 */
 
   /* Modals 共用樣式 */
   .modal-overlay {
@@ -325,7 +335,7 @@
 
 <script>
   // ==========================================
-  // ⚠️ 這裡已經換上您提供的最新 GAS API 網址！
+  // ⚠️ 部署設定區：請替換為您的 GAS 網頁應用程式網址
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
@@ -377,7 +387,7 @@
         
         // ★ 偵測機制：確定有連線到新版後端
         const backendVer = data.version ? data.version : '<span class="version-error">未更新(舊版)</span>';
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9.1 / 後端${backendVer}</span>`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9.2 / 後端${backendVer}</span>`;
         document.title = data.title;
         
         sysConfig = data; // 存入全域設定
@@ -614,7 +624,7 @@
       }, "確定送出", "blue");
   }
 
-  // ================== 全校已報名清單 (修正白字白底 Bug) ==================
+  // ================== 全校已報名清單 (升級：正取優先，動態色彩群組) ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
@@ -658,27 +668,45 @@
             return;
         }
 
-        // 排序演算法：跨班排最後 ➔ 正式組別 ➔ 班級 ➔ 正/備取 ➔ 座號
+        // ================== 多層次排序演算法 (正取優先) ==================
         data.rows.sort((a, b) => {
             const groupA = String(a.group || '');
             const groupB = String(b.group || '');
+            const offA = String(a.officialGroup || '').trim();
+            const offB = String(b.officialGroup || '').trim();
             
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
+            // 1. 跨班一律排在最後面
             if (isCrossA && !isCrossB) return 1;
             if (!isCrossA && isCrossB) return -1;
+            
+            // 2. 正取在前、備取在後 (個人也算在正取類)
+            const isMainA = groupA.includes('正取') || groupA.includes('個人');
+            const isMainB = groupB.includes('正取') || groupB.includes('個人');
+            if (isMainA && !isMainB) return -1;
+            if (!isMainA && isMainB) return 1;
+
+            // 如果同為備取，依備取數字排序 (備取1, 備取2...)
+            if (!isMainA && !isMainB && !isCrossA && !isCrossB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+            
+            // 對於跨班，依跨班數字排序
             if (isCrossA && isCrossB) {
                 const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
                 const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
                 if (numA !== numB) return numA - numB;
-                const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
-                if (classCmp !== 0) return classCmp;
-                return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
-            const offA = String(a.officialGroup || '').trim();
-            const offB = String(b.officialGroup || '').trim();
+            // 3. 班級排序
+            const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+            if (classCmp !== 0) return classCmp;
+
+            // 4. 正式組別排序 (第X組)
             if (offA && !offB) return -1;
             if (!offA && offB) return 1;
             if (offA && offB) {
@@ -687,26 +715,12 @@
                 if (numA !== numB) return numA - numB;
             }
 
-            const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
-            if (classCmp !== 0) return classCmp;
-
-            const isMainA = groupA.includes('正取') || groupA.includes('個人');
-            const isMainB = groupB.includes('正取') || groupB.includes('個人');
-            if (isMainA && !isMainB) return -1;
-            if (!isMainA && isMainB) return 1;
-
-            if (!isMainA && !isMainB) {
-                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
-                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
-                if (numA !== numB) return numA - numB;
-            }
-
+            // 5. 座號排序
             return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
         });
 
         const thead = `<tr><th>班級</th><th>座號</th><th>姓名</th><th>學號</th><th>組別</th><th>正式組別</th><th style="text-align:center;">操作</th></tr>`;
         const tbody = data.rows.map(r => {
-            // ★ 修正白字白底 Bug：確保原始組別保留原本的顏色
             let tagClass = 'gray';
             if (r.group.includes('正取') || r.group.includes('個人')) {
                 tagClass = 'main';
@@ -716,10 +730,25 @@
                 tagClass = 'primary';
             }
             
-            // 正式組別給予專屬的紫色 (purple 類別已加在 CSS)
-            const officialHtml = r.officialGroup 
-                ? `<span class="tag purple" style="font-size:16px;">${r.officialGroup}</span>` 
-                : `<span class="tag gray" style="background:transparent; color:transparent;">-</span>`;
+            // ★ 動態分配組別顏色 (根據數字 0-9 選擇顏色類別)
+            let offColorClass = 'gray'; 
+            let officialText = '-';
+            let styleStr = 'background:transparent; color:transparent;';
+            
+            if (r.officialGroup) {
+                officialText = r.officialGroup;
+                styleStr = 'font-size:16px;';
+                const match = r.officialGroup.match(/\d+/);
+                if (match) {
+                    const num = parseInt(match[0], 10);
+                    // 根據組別數字除以 10 取餘數，給予對應的 CSS class
+                    offColorClass = 'group-color-' + (num % 10);
+                } else {
+                    offColorClass = 'success'; // 預設備用顏色
+                }
+            }
+
+            const officialHtml = `<span class="tag ${offColorClass}" style="${styleStr}">${officialText}</span>`;
 
             return `
             <tr id="signed-row-${r.rowIndex}">
