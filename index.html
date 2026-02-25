@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>組隊報名系統</title>
+<title>報名系統</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -88,23 +88,10 @@
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
-  /* ===== 文繞圖樣式 ===== */
-  .notice-wrapper { 
-    display: flow-root; 
-  }
-  .notice-img {
-    float: right; 
-    max-width: 250px;
-    width: 40%;
-    margin: 5px 0 15px 20px; 
-    border-radius: 10px;
-    box-shadow: var(--shadow-md);
-    border: 3px solid #a7f3d0;
-    object-fit: cover;
-    background: #fff;
-  }
+  .notice-wrapper { display: flow-root; }
+  .notice-img { float: right; max-width: 250px; width: 40%; margin: 5px 0 15px 20px; border-radius: 10px; box-shadow: var(--shadow-md); border: 3px solid #a7f3d0; object-fit: cover; background: #fff; }
 
-  /* ===== 浮動狀態與統計列 (Sticky) ===== */
+  /* ===== 浮動狀態與統計列 ===== */
   .sticky-stats {
     position: sticky; top: 10px; z-index: 100;
     background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
@@ -113,17 +100,12 @@
     display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
   }
   .stats-badges { display: flex; gap: 12px; flex-wrap: wrap; }
-  .stat-badge { 
-    padding: 8px 16px; border-radius: 999px; font-weight: 900; font-size: 16px; 
-    display: flex; align-items: center; gap: 6px;
-  }
+  .stat-badge { padding: 8px 16px; border-radius: 999px; font-weight: 900; font-size: 16px; display: flex; align-items: center; gap: 6px; }
   .stat-badge.main { background: var(--success-light); color: #166534; border: 1px solid #86efac; }
   .stat-badge.wait { background: var(--warning-light); color: #92400e; border: 1px solid #fcd34d; }
   .stat-count { font-size: 18px; }
 
-  /* ===== 列表上的學生卡片 ===== */
   .stu-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-  
   .stu-card {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 16px; background: var(--card-bg); border-radius: 12px;
@@ -146,7 +128,6 @@
   .row-select.sel-wait { background: var(--warning); color: white; border-color: var(--warning); }
   .row-select:focus { transform: scale(1.05); }
 
-  /* 已報名名單表格專用 */
   .vibrant-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
   .vibrant-table th { background: var(--primary); color: white; padding: 16px; text-align: left; font-size: 16px;}
   .vibrant-table td { padding: 16px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 16px; font-weight: bold; vertical-align: middle;}
@@ -157,6 +138,7 @@
   .tag.main { background: var(--success); }
   .tag.wait { background: var(--warning); }
   .tag.primary { background: var(--primary); }
+  .tag.gray { background: var(--text-muted); }
 
   /* Modals 共用樣式 */
   .modal-overlay {
@@ -170,13 +152,15 @@
   /* 進階設定按鈕網格 */
   .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
   @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
-  .btn-adv { padding: 16px 12px; border-radius: 16px; color: white; font-weight: bold; font-size: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  .btn-adv { padding: 16px 12px; border-radius: 16px; color: white; font-weight: bold; font-size: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;}
+  .btn-adv:active { transform: scale(0.95); }
   .btn-adv-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
   .btn-adv-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
   .btn-adv-green { background: linear-gradient(135deg, #10b981, #047857); }
   .btn-adv-teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
   .btn-adv-purple { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
   .btn-adv-orange { background: linear-gradient(135deg, #f59e0b, #b45309); }
+  .btn-adv-slate { background: linear-gradient(135deg, #475569, #1e293b); }
   .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
   
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
@@ -201,7 +185,7 @@
 
 <div class="wrap">
   
-  <div class="header-title" id="pageTitle">組隊報名系統</div>
+  <div class="header-title" id="pageTitle">報名系統</div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
     <h3 style="margin-top:0; color:var(--success);">📌 報名說明</h3>
@@ -221,13 +205,8 @@
     
     <!-- 置頂狀態統計列 -->
     <div class="sticky-stats" id="statsBar">
-      <div class="stats-badges">
-        <div class="stat-badge main">
-          正取： <span class="stat-count"><span id="countMain">0</span> / <span id="limitMain">0</span></span>
-        </div>
-        <div class="stat-badge wait">
-          備取： <span class="stat-count"><span id="countWait">0</span> / <span id="limitWait">0</span></span>
-        </div>
+      <div class="stats-badges" id="statsBadgesContainer">
+        <!-- 動態產生 -->
       </div>
       <button class="btn green" style="font-size: 18px; padding: 12px 24px;" onclick="submitGroup()">🚀 送出儲存</button>
     </div>
@@ -245,7 +224,7 @@
 
 </div>
 
-<!-- ================== Modals 視窗區 ================== -->
+<!-- ================== Modals ================== -->
 
 <div class="modal-overlay" id="confirmModal">
   <div class="modal">
@@ -275,11 +254,11 @@
     <div class="adv-grid">
       <button class="btn-adv btn-adv-red" onclick="triggerResetDefaults()"><span style="font-size:28px;">🗑️</span>1. 回復預設值</button>
       <button class="btn-adv btn-adv-blue" onclick="openBasicSettings()"><span style="font-size:28px;">📝</span>2. 基本設定</button>
-      <button class="btn-adv btn-adv-green" onclick="window.open('https://script.google.com/a/macros/fjm.kh.edu.tw/s/AKfycbzg_pBsmpXIe5PX3B7cdF1IImXLVzUvEm8yuU3JLYZzaTYQ_5Ctn-0ooP5XfSLb_FVB/exec','_blank')"><span style="font-size:28px;">🏫</span>3. 學務處公假單</button>
-      <button class="btn-adv btn-adv-teal" onclick="window.open('#','_blank')"><span style="font-size:28px;">📋</span>4. 班級公假單</button>
+      <button class="btn-adv btn-adv-green" onclick="generateOfficeLeave()"><span style="font-size:28px;">🏫</span>3. 學務處公假單</button>
+      <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>4. 班級公假單</button>
       <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>5. 雲端資料夾</button>
       <button class="btn-adv btn-adv-orange" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>6. 跨班組隊</button>
-      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>7. 預備功能</button>
+      <button class="btn-adv btn-adv-slate" onclick="confirmGroupAssignment()"><span style="font-size:28px;">🏷️</span>7. 確定分組</button>
       <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>8. 預備功能</button>
       <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>9. 預備功能</button>
       <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>10. 預備功能</button>
@@ -330,7 +309,7 @@
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbww9F0m7-6g3d9toQ8KVBheIHVAjvstSWAcf2lYUs5vjjQFHay2i_01VjnJ2-snLptk/exec"; 
   
-  let sysConfig = { groupSize: 3, mainGroups: 1, waitlistCount: 1, groupLimit: 20 };
+  let sysConfig = {};
   let currentClassStudents = []; 
   let sysClasses = []; 
   
@@ -338,7 +317,7 @@
   let adminNextAction = null; 
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
-  // ================== UI 輔助函式 ==================
+  // ================== UI 輔助 ==================
   function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
   function showToast(msg, type='success') {
     const el = document.getElementById('toast');
@@ -378,16 +357,11 @@
         
         document.getElementById('pageTitle').textContent = data.title;
         document.title = data.title;
-        sysConfig.groupSize = data.groupSize || 3;
-        sysConfig.mainGroups = data.mainGroups || 1;
-        sysConfig.waitlistCount = data.waitlistCount || 1;
-        sysConfig.groupLimit = data.groupLimit || 20; 
+        sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
 
-        // 處理說明與圖片渲染 (文繞圖)
         if((data.notices && data.notices.length > 0) || data.imageUrl) {
           document.getElementById('noticeCard').style.display = 'block';
-          
           let contentHtml = '';
           if(data.imageUrl) {
              let imgUrl = data.imageUrl;
@@ -413,19 +387,17 @@
         showLoader(false);
       })
       .catch(err => {
-        showLoader(false);
-        showToast("初始化失敗，請確認 GAS 網址: " + err.message, "error");
+        showLoader(false); showToast("初始化失敗: " + err.message, "error");
       });
   };
 
-  // ================== 查詢班級學生 ==================
+  // ================== 查詢班級 ==================
   function queryStudents() {
     const cls = document.getElementById('classSelect').value;
-    
     if(!cls) {
         document.getElementById('statsBar').style.display = 'none';
         document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">👆 請先由上方選擇班級，或查看已報名名單</div>`;
-        document.getElementById('listTitle').textContent = `班級學生列表`;
+        document.getElementById('listTitle').textContent = `名單列表`;
         return; 
     }
 
@@ -436,24 +408,32 @@
         showLoader(false);
         if(data.error) throw new Error(data.error);
         
+        sysConfig.globalRegCount = data.globalRegCount || 0;
+        
         currentClassStudents = data.rows.map(stu => {
             let status = 'none';
             let isCross = false;
             
             if (stu.E == 1 || stu.E == '1') {
-                if (stu.F && String(stu.F).includes('跨班')) {
-                    isCross = true;
-                    status = 'cross';
-                } else if (stu.F && String(stu.F).includes('正取')) {
-                    status = 'main';
-                } else if (stu.F && String(stu.F).includes('備取')) {
-                    status = 'wait';
-                } else {
+                if (sysConfig.regMode === '個人') {
                     status = 'main'; 
+                } else {
+                    if (stu.F && String(stu.F).includes('跨班')) {
+                        isCross = true;
+                        status = 'cross';
+                    } else if (stu.F && String(stu.F).includes('正取')) {
+                        status = 'main';
+                    } else if (stu.F && String(stu.F).includes('備取')) {
+                        status = 'wait';
+                    } else {
+                        status = 'main'; 
+                    }
                 }
             }
-            return { ...stu, currentStatus: status, isCross: isCross };
+            return { ...stu, currentStatus: status, isCross: isCross, origStatus: status };
         });
+
+        sysConfig.classOriginalRegCount = currentClassStudents.filter(s => s.origStatus === 'main' || s.origStatus === 'wait').length;
 
         document.getElementById('listTitle').textContent = `${cls} 班級學生列表`;
         renderStudentList();
@@ -464,40 +444,66 @@
   }
 
   function updateStats() {
-      const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
-      const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
-      const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
-      const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
-
-      document.getElementById('countMain').textContent = mainCount;
-      document.getElementById('limitMain').textContent = limitMain;
-      document.getElementById('countWait').textContent = waitCount;
-      document.getElementById('limitWait').textContent = limitWait;
+      const container = document.getElementById('statsBadgesContainer');
       
-      document.getElementById('countMain').style.color = (mainCount > limitMain) ? 'red' : 'inherit';
-      document.getElementById('countWait').style.color = (waitCount > limitWait) ? 'red' : 'inherit';
-
+      if (sysConfig.regMode === '個人') {
+          const currentSelected = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+          const netChange = currentSelected - sysConfig.classOriginalRegCount;
+          const projectedGlobal = sysConfig.globalRegCount + netChange;
+          const limit = sysConfig.individualLimit;
+          const remain = Math.max(0, limit - projectedGlobal);
+          
+          container.innerHTML = `
+            <div class="stat-badge main">
+              目前報名：<span class="stat-count" style="color: ${projectedGlobal > limit ? 'red' : 'inherit'}">${projectedGlobal} / ${limit} (剩 ${remain} 人)</span>
+            </div>
+          `;
+      } else {
+          const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+          const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
+          const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
+          const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
+          
+          container.innerHTML = `
+            <div class="stat-badge main">
+              正取： <span class="stat-count" style="color: ${mainCount > limitMain ? 'red' : 'inherit'}">${mainCount} / ${limitMain}</span>
+            </div>
+            <div class="stat-badge wait">
+              備取： <span class="stat-count" style="color: ${waitCount > limitWait ? 'red' : 'inherit'}">${waitCount} / ${limitWait}</span>
+            </div>
+          `;
+      }
       document.getElementById('statsBar').style.display = 'flex';
   }
 
   function handleStatusChange(rowIndex, newValue) {
       const stu = currentClassStudents.find(s => s.rowIndex === rowIndex);
       
-      if (newValue === 'main') {
-          const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
-          const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
-          if (mainCount >= limitMain) {
-              showToast(`正取人數已達上限 (${limitMain}人)！`, 'error');
-              renderStudentList(); 
-              return;
+      if (sysConfig.regMode === '個人') {
+          if (newValue === 'main') {
+              const currentSelected = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+              const projectedGlobal = sysConfig.globalRegCount - sysConfig.classOriginalRegCount + currentSelected + 1;
+              if (projectedGlobal > sysConfig.individualLimit) {
+                  showToast(`超過報名上限 (${sysConfig.individualLimit}人)！`, 'error');
+                  renderStudentList(); 
+                  return;
+              }
           }
-      } else if (newValue === 'wait') {
-          const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
-          const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
-          if (waitCount >= limitWait) {
-              showToast(`備取人數已達上限 (${limitWait}人)！`, 'error');
-              renderStudentList(); 
-              return;
+      } else {
+          if (newValue === 'main') {
+              const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+              const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
+              if (mainCount >= limitMain) {
+                  showToast(`正取人數已達上限 (${limitMain}人)！`, 'error');
+                  renderStudentList(); return;
+              }
+          } else if (newValue === 'wait') {
+              const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
+              const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
+              if (waitCount >= limitWait) {
+                  showToast(`備取人數已達上限 (${limitWait}人)！`, 'error');
+                  renderStudentList(); return;
+              }
           }
       }
 
@@ -508,11 +514,7 @@
   function renderStudentList() {
     const container = document.getElementById('studentListContainer');
     container.innerHTML = '';
-    
-    if(currentClassStudents.length === 0) {
-      container.innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">此班級查無學生資料</div>`;
-      return;
-    }
+    if(currentClassStudents.length === 0) return;
 
     currentClassStudents.forEach(stu => {
       const div = document.createElement('div');
@@ -526,13 +528,15 @@
           if(stu.currentStatus === 'main') selClass += ' sel-main';
           if(stu.currentStatus === 'wait') selClass += ' sel-wait';
 
-          rightHtml = `
-            <select class="${selClass}" onchange="handleStatusChange(${stu.rowIndex}, this.value)">
-                <option value="none" ${stu.currentStatus === 'none' ? 'selected' : ''}>不參加</option>
-                <option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>正取</option>
-                <option value="wait" ${stu.currentStatus === 'wait' ? 'selected' : ''}>備取</option>
-            </select>
-          `;
+          let optionsHtml = `<option value="none" ${stu.currentStatus === 'none' ? 'selected' : ''}>不參加</option>`;
+          if (sysConfig.regMode === '個人') {
+              optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>參加</option>`;
+          } else {
+              optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>正取</option>`;
+              optionsHtml += `<option value="wait" ${stu.currentStatus === 'wait' ? 'selected' : ''}>備取</option>`;
+          }
+
+          rightHtml = `<select class="${selClass}" onchange="handleStatusChange(${stu.rowIndex}, this.value)">${optionsHtml}</select>`;
       }
 
       div.innerHTML = `
@@ -540,13 +544,10 @@
           <div class="stu-meta">座號：${stu.B}</div>
           <div class="stu-name">${stu.C}</div>
         </div>
-        <div>
-          ${rightHtml}
-        </div>
+        <div>${rightHtml}</div>
       `;
       container.appendChild(div);
     });
-
     updateStats();
   }
 
@@ -558,18 +559,19 @@
       currentClassStudents.forEach(stu => {
           if (stu.isCross) return; 
 
-          if (stu.currentStatus === 'main') {
-              payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-正取` });
-          } else if (stu.currentStatus === 'wait') {
-              payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取1` });
+          if (sysConfig.regMode === '個人') {
+              if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `個人` });
+              else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
           } else {
-              payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
+              if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-正取` });
+              else if (stu.currentStatus === 'wait') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取1` });
+              else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
           }
       });
 
-      if (payload.length === 0) return showToast("沒有任何資料可以送出！", "error");
+      if (payload.length === 0) return showToast("沒有資料可以送出！", "error");
 
-      const doSubmit = () => {
+      showConfirm("儲存確認", "確定要儲存目前的報名狀態嗎？\n(名單上顯示不參加者，若原先已報名將會被取消)", () => {
           showLoader(true);
           fetch(GAS_API_URL, {
             method: 'POST',
@@ -586,12 +588,10 @@
           .catch(err => {
             showLoader(false); showToast("儲存失敗: " + err.message, "error");
           });
-      };
-
-      showConfirm("儲存確認", "確定要儲存目前的報名狀態嗎？\n(名單上顯示不參加者，若原先已報名將會被取消)", doSubmit, "確定送出", "blue");
+      }, "確定送出", "blue");
   }
 
-  // ================== 檢視全校已報名清單 ==================
+  // ================== 全校已報名清單 (新增多層次排序邏輯) ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList`)
@@ -602,21 +602,32 @@
         
         document.getElementById('statsBar').style.display = 'none'; 
         
-        const groupSet = new Set();
-        data.rows.forEach(r => {
-            if(r.group) groupSet.add(r.group);
-        });
-        const currentGroups = groupSet.size;
-        const limitGroups = sysConfig.groupLimit || 20;
-        const remainGroups = Math.max(0, limitGroups - currentGroups);
-
-        const statsHtml = `
-          <div style="background:#e0f2fe; color:#0369a1; padding:16px; border-radius:12px; margin-bottom:15px; font-weight:bold; font-size:16px; border:2px solid #bae6fd; box-shadow:0 4px 6px rgba(0,0,0,0.05); text-align:center;">
-            📊 報名統計：目前共 <span style="color:#0284c7; font-size:22px;">${currentGroups}</span> 組 
-            / 上限 <span style="color:#e11d48; font-size:22px;">${limitGroups}</span> 組 
-            (剩餘 <span style="color:#059669; font-size:22px;">${remainGroups}</span> 組)
-          </div>
-        `;
+        let statsHtml = '';
+        if (sysConfig.regMode === '個人') {
+            const currentCount = data.rows.length;
+            const limit = sysConfig.individualLimit;
+            const remain = Math.max(0, limit - currentCount);
+            statsHtml = `
+              <div style="background:#e0f2fe; color:#0369a1; padding:16px; border-radius:12px; margin-bottom:15px; font-weight:bold; font-size:16px; border:2px solid #bae6fd; box-shadow:0 4px 6px rgba(0,0,0,0.05); text-align:center;">
+                📊 報名統計：目前共 <span style="color:#0284c7; font-size:22px;">${currentCount}</span> 人 
+                / 上限 <span style="color:#e11d48; font-size:22px;">${limit}</span> 人 
+                (剩餘 <span style="color:#059669; font-size:22px;">${remain}</span> 人)
+              </div>
+            `;
+        } else {
+            const groupSet = new Set();
+            data.rows.forEach(r => { if(r.group) groupSet.add(r.group); });
+            const currentGroups = groupSet.size;
+            const limitGroups = sysConfig.groupLimit || 20;
+            const remainGroups = Math.max(0, limitGroups - currentGroups);
+            statsHtml = `
+              <div style="background:#e0f2fe; color:#0369a1; padding:16px; border-radius:12px; margin-bottom:15px; font-weight:bold; font-size:16px; border:2px solid #bae6fd; box-shadow:0 4px 6px rgba(0,0,0,0.05); text-align:center;">
+                📊 報名統計：目前共 <span style="color:#0284c7; font-size:22px;">${currentGroups}</span> 組 
+                / 上限 <span style="color:#e11d48; font-size:22px;">${limitGroups}</span> 組 
+                (剩餘 <span style="color:#059669; font-size:22px;">${remainGroups}</span> 組)
+              </div>
+            `;
+        }
 
         if(!data.rows || data.rows.length === 0) {
             document.getElementById('studentListContainer').innerHTML = statsHtml + `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold; font-size:18px;">目前全校無人報名</div>`;
@@ -624,18 +635,27 @@
             return;
         }
 
-        // 加入排序邏輯：班級 -> 組別(正取>備取) -> 跨班排最後
+        // ================== 多層次排序演算法 ==================
         data.rows.sort((a, b) => {
+            const offA = String(a.officialGroup || '').trim();
+            const offB = String(b.officialGroup || '').trim();
+            
+            if (offA && !offB) return -1;
+            if (!offA && offB) return 1;
+            if (offA && offB) {
+                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+
             const groupA = String(a.group || '');
             const groupB = String(b.group || '');
+            
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
-            // 1. 跨班一律排在最下面
             if (isCrossA && !isCrossB) return 1;
             if (!isCrossA && isCrossB) return -1;
-
-            // 2. 如果都是跨班，依照跨班數字排序，再排班級、座號
             if (isCrossA && isCrossB) {
                 const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
                 const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
@@ -645,30 +665,35 @@
                 return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
-            // 3. 一般班級，先看班級
             const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
             if (classCmp !== 0) return classCmp;
 
-            // 4. 同班級，正取優先於備取
-            const isMainA = groupA.includes('正取');
-            const isMainB = groupB.includes('正取');
+            const isMainA = groupA.includes('正取') || groupA.includes('個人');
+            const isMainB = groupB.includes('正取') || groupB.includes('個人');
             if (isMainA && !isMainB) return -1;
             if (!isMainA && isMainB) return 1;
 
-            // 5. 如果都是備取，依備取數字排序
             if (!isMainA && !isMainB) {
                 const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
                 const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
                 if (numA !== numB) return numA - numB;
             }
 
-            // 6. 最後按座號排序
             return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
         });
 
         const thead = `<tr><th>班級</th><th>座號</th><th>姓名</th><th>學號</th><th>組別</th><th>正式組別</th><th style="text-align:center;">操作</th></tr>`;
         const tbody = data.rows.map(r => {
-            let tagClass = r.group.includes('正取') ? 'main' : (r.group.includes('備取') ? 'wait' : 'primary');
+            let tagClass = 'gray';
+            if (r.officialGroup) {
+                tagClass = 'success';
+            } else if (r.group.includes('正取') || r.group.includes('個人')) {
+                tagClass = 'main';
+            } else if (r.group.includes('備取')) {
+                tagClass = 'wait';
+            } else if (r.group.includes('跨班')) {
+                tagClass = 'primary';
+            }
             return `
             <tr id="signed-row-${r.rowIndex}">
                 <td>${r.className}</td>
@@ -676,7 +701,7 @@
                 <td id="cell-name-${r.rowIndex}">${r.name}</td>
                 <td id="cell-stid-${r.rowIndex}">${r.studentId}</td>
                 <td><span class="tag ${tagClass}">${r.group}</span></td>
-                <td>${r.officialGroup}</td>
+                <td><span class="tag ${r.officialGroup ? 'success' : 'gray'}" style="${r.officialGroup ? 'font-size:16px;' : 'background:transparent; color:transparent;'}">${r.officialGroup || '-'}</span></td>
                 <td id="cell-action-${r.rowIndex}" style="text-align:center;">
                    <button class="btn yellow" style="padding:6px 12px; font-size:14px; border-radius:8px;" onclick="handleEditSignedBtn(${r.rowIndex}, '${r.className}', '${r.group}')">修改</button>
                 </td>
@@ -699,7 +724,7 @@
       });
   }
 
-  // ================== 管理員功能與替換 ==================
+  // ================== 管理員與替換功能 ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     document.getElementById('adminPwd').value = '';
@@ -713,17 +738,14 @@
     document.getElementById('adminPwdModal').style.display = 'none';
     
     if (typeof adminNextAction === 'function') {
-        adminNextAction();
-        adminNextAction = null;
+        adminNextAction(); adminNextAction = null;
     } else {
         document.getElementById('advancedMenuModal').style.display = 'flex';
     }
   }
 
   function handleEditSignedBtn(rowIndex, className, group) {
-      showAdminModal(() => {
-          startEditSigned(rowIndex, className, group);
-      });
+      showAdminModal(() => startEditSigned(rowIndex, className, group));
   }
 
   function startEditSigned(rowIndex, className, oldGroup) {
@@ -749,16 +771,11 @@
                 }
             });
 
-            document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `
-              <select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${rowIndex}, this.value)">
-                ${seatOptions}
-              </select>`;
-              
+            document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${rowIndex}, this.value)">${seatOptions}</select>`;
             document.getElementById(`cell-action-${rowIndex}`).innerHTML = `
               <button class="btn green" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="confirmSwapSigned(${rowIndex})">確定</button>
               <button class="btn outline-gray" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="fetchSignedList()">取消</button>
             `;
-            
             tr.style.background = 'var(--warning-light)';
         })
         .catch(err => {
@@ -781,18 +798,10 @@
       if(!select) return;
       const newRowIndex = parseInt(select.value);
 
-      if(!newRowIndex) return showToast('請選擇要替換的學生', 'error');
+      if(!newRowIndex) return showToast('請選擇替換學生', 'error');
+      if (newRowIndex === oldRowIndex) { showToast('未變更', 'info'); fetchSignedList(); return; }
 
-      if (newRowIndex === oldRowIndex) {
-           showToast('未變更學生，操作取消', 'info');
-           fetchSignedList();
-           return;
-      }
-
-      const payload = [
-          {rowIndex: oldRowIndex, E: 0, F: ''}, 
-          {rowIndex: newRowIndex, E: 1, F: currentEditData.oldGroup}
-      ];
+      const payload = [{rowIndex: oldRowIndex, E: 0, F: ''}, {rowIndex: newRowIndex, E: 1, F: currentEditData.oldGroup}];
 
       showLoader(true);
       fetch(GAS_API_URL, {
@@ -804,20 +813,16 @@
       .then(data => {
           showLoader(false);
           if(data.error) throw new Error(data.error);
-          showToast('✅ 修改並替換成功！');
+          showToast('✅ 替換成功！');
           fetchSignedList(); 
       })
-      .catch(err => {
-          showLoader(false); showToast("修改失敗: " + err.message, "error");
-      });
+      .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
   }
 
-
   // ================== 進階設定區域 ==================
-
   function triggerResetDefaults() {
     document.getElementById('advancedMenuModal').style.display = 'none'; 
-    showConfirm("⚠️ 極度危險操作", "這將清除「所有學生」的報名紀錄(恢復預設值)！\n此動作無法復原，確定要執行嗎？", () => {
+    showConfirm("⚠️ 極度危險操作", "清除「所有學生」紀錄無法復原，確定執行？", () => {
         showLoader(true);
         fetch(GAS_API_URL, {
           method: 'POST',
@@ -828,23 +833,19 @@
         .then(data => {
           showLoader(false);
           if(data.error) throw new Error(data.error);
-          showToast("已恢復預設值！所有名單已清空。");
+          showToast("已恢復預設值！");
           document.getElementById('classSelect').value = '';
           document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
         })
-        .catch(err => {
-          showLoader(false); showToast("重設失敗: " + err.message, "error");
-        });
+        .catch(err => { showLoader(false); showToast("重設失敗: " + err.message, "error"); });
     }, "確認清除全部", "red");
   }
 
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    
     fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'getBasicSettings' })
     })
     .then(res => res.json())
@@ -861,20 +862,20 @@
           if(!label) return; 
           
           let inputHtml = '';
-          if(label.includes('人數') || label.includes('組數') || label.includes('上限') || label.includes('學期')) {
-              inputHtml = `<select id="settingInput_${idx}">`;
-              for(let i=1; i<=100; i++) {
-                  inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
-              }
+          if (label.includes('學年度')) {
+              inputHtml = `<select class="setting-input">`;
+              for(let i=110; i<=130; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
               inputHtml += `</select>`;
-          } else if (label.includes('學年度')) {
-              inputHtml = `<select id="settingInput_${idx}">`;
-              for(let i=110; i<=130; i++) {
-                  inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
-              }
+          } else if (label.includes('學期')) {
+              inputHtml = `<select class="setting-input"><option value="1" ${String(val)==='1'?'selected':''}>1</option><option value="2" ${String(val)==='2'?'selected':''}>2</option></select>`;
+          } else if (label.includes('報名方式')) {
+              inputHtml = `<select class="setting-input"><option value="個人" ${val==='個人'?'selected':''}>個人</option><option value="分組" ${val==='分組'?'selected':''}>分組</option></select>`;
+          } else if (label.includes('人數') || label.includes('組數') || label.includes('上限')) {
+              inputHtml = `<select class="setting-input">`;
+              for(let i=1; i<=300; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
               inputHtml += `</select>`;
           } else {
-              inputHtml = `<input type="text" id="settingInput_${idx}" value="${val}" />`;
+              inputHtml = `<input type="text" class="setting-input" value="${val}" />`;
           }
           
           const div = document.createElement('div');
@@ -884,45 +885,84 @@
       document.getElementById('basicSettingsModal').style.display = 'flex';
     })
     .catch(err => {
-      showLoader(false); showToast("讀取設定失敗: " + err.message, "error");
+      showLoader(false); showToast("讀取失敗", "error");
       document.getElementById('advancedMenuModal').style.display = 'flex';
     });
   }
 
   function saveBasicSettings() {
     const payload = [];
-    const inputs = document.querySelectorAll('#settingsFormContainer input, #settingsFormContainer select');
-    inputs.forEach((input) => {
-        payload.push([null, input.value.trim()]);
+    document.querySelectorAll('#settingsFormContainer .setting-input').forEach((input) => {
+        payload.push(input.value.trim());
     });
 
     showLoader(true);
     fetch(GAS_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'saveBasicSettings', payload: payload })
     })
     .then(res => res.json())
     .then(data => {
       showLoader(false);
       if(data.error) throw new Error(data.error);
-      showToast("設定已成功儲存，即將重新載入頁面！");
+      showToast("設定儲存成功，即將重新載入！");
       setTimeout(() => window.location.reload(), 1500);
     })
-    .catch(err => {
-      showLoader(false); showToast("儲存設定失敗: " + err.message, "error");
-    });
+    .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== 跨班組隊 ==================
+  // ================== 公假單、跨班與確定分組 ==================
+  function generateOfficeLeave() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("公假單確認", "產生「學務處公假單」PDF + Excel 嗎？", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
+          .then(res => res.json())
+          .then(data => { showLoader(false); if(data.error||!data.ok) throw new Error(data.message||'失敗'); showToast("✅ 已產生至雲端！"); })
+          .catch(err => { showLoader(false); showToast(err.message, "error"); });
+      }, "確定產生", "blue");
+  }
+
+  function generateClassLeave() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("公假單確認", "合併產生「班級公假單」PDF 嗎？", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave' }) })
+          .then(res => res.json())
+          .then(data => { showLoader(false); if(data.error||!data.ok) throw new Error(data.message||'失敗'); showToast(`✅ 已合併（共 ${data.count} 班）`); })
+          .catch(err => { showLoader(false); showToast(err.message, "error"); });
+      }, "確定合併", "blue");
+  }
+
+  function confirmGroupAssignment() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'confirmGroups' })
+          })
+          .then(res => res.json())
+          .then(data => {
+              showLoader(false);
+              if(data.error) throw new Error(data.error);
+              showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
+              fetchSignedList(); 
+          })
+          .catch(err => {
+              showLoader(false);
+              showToast("分組失敗: " + err.message, "error");
+          });
+      }, "執行分組", "blue");
+  }
+
   function openCrossClassModal() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     [1, 2, 3].forEach(num => {
         const clsSel = document.getElementById(`ccClass${num}`);
         clsSel.innerHTML = '<option value="">-- 選擇班級 --</option>';
-        sysClasses.forEach(c => {
-            clsSel.innerHTML += `<option value="${c}">${c} 班</option>`;
-        });
+        sysClasses.forEach(c => { clsSel.innerHTML += `<option value="${c}">${c} 班</option>`; });
         document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
     });
     document.getElementById('crossClassModal').style.display = 'flex';
@@ -931,63 +971,43 @@
   function fetchCrossStudents(num) {
     const cls = document.getElementById(`ccClass${num}`).value;
     const stuSel = document.getElementById(`ccStudent${num}`);
-    if(!cls) {
-        stuSel.innerHTML = '<option value="">-- 先選班級 --</option>';
-        return;
-    }
+    if(!cls) { stuSel.innerHTML = '<option value="">-- 先選班級 --</option>'; return; }
     
     stuSel.innerHTML = '<option value="">載入中...</option>';
     fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}`)
       .then(res => res.json())
       .then(data => {
-          if(data.error) throw new Error(data.error);
           stuSel.innerHTML = '<option value="">-- 選擇學生 --</option>';
           data.rows.forEach(stu => {
               const isReg = (stu.E == 1 || stu.E == '1');
-              const mark = isReg ? ' (已報名)' : '';
-              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${mark}</option>`;
+              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${isReg ? ' (已報名)' : ''}</option>`;
           });
-      })
-      .catch(err => {
-          stuSel.innerHTML = '<option value="">載入失敗</option>';
-          showToast("載入學生失敗", "error");
       });
   }
 
   function triggerSubmitCrossClassTeam() {
-    const stu1 = document.getElementById('ccStudent1').value;
-    const stu2 = document.getElementById('ccStudent2').value;
-    const stu3 = document.getElementById('ccStudent3').value;
-
-    if(!stu1 || !stu2 || !stu3) return showToast("請完整選擇 3 位學生！", "error");
-    if(new Set([stu1, stu2, stu3]).size !== 3) return showToast("不能選擇重複的學生！", "error");
+    const s1 = document.getElementById('ccStudent1').value;
+    const s2 = document.getElementById('ccStudent2').value;
+    const s3 = document.getElementById('ccStudent3').value;
+    if(!s1 || !s2 || !s3) return showToast("請選滿3人！", "error");
+    if(new Set([s1, s2, s3]).size !== 3) return showToast("不可重複！", "error");
 
     document.getElementById('crossClassModal').style.display = 'none';
-    
-    showConfirm("跨班組隊確認", "確定要將這 3 位學生組成跨班隊伍嗎？", () => {
+    showConfirm("跨班組隊", "確定組成跨班隊伍嗎？", () => {
         showLoader(true);
-        const numPayload = [Number(stu1), Number(stu2), Number(stu3)];
-        
         fetch(GAS_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'saveCrossClassTeam', payload: numPayload })
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'saveCrossClassTeam', payload: [Number(s1), Number(s2), Number(s3)] })
         })
         .then(res => res.json())
         .then(data => {
             showLoader(false);
-            if(data.error) throw new Error(data.error);
-            showToast(`🎉 跨班組隊成功！組別為：${data.newTeam}`);
+            showToast(`🎉 成功！組別：${data.newTeam}`);
             closeAllModals();
             if(document.getElementById('classSelect').value) queryStudents(); 
-        })
-        .catch(err => {
-            showLoader(false);
-            showToast("跨班組隊失敗: " + err.message, "error");
         });
     }, "確定組隊", "blue");
   }
-
 </script>
 </body>
 </html>
