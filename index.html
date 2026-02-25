@@ -88,6 +88,22 @@
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
+  /* ===== 文繞圖樣式 ===== */
+  .notice-wrapper { 
+    display: flow-root; 
+  }
+  .notice-img {
+    float: right; 
+    max-width: 250px;
+    width: 40%;
+    margin: 5px 0 15px 20px; 
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    border: 3px solid #a7f3d0;
+    object-fit: cover;
+    background: #fff;
+  }
+
   /* ===== 浮動狀態與統計列 (Sticky) ===== */
   .sticky-stats {
     position: sticky; top: 10px; z-index: 100;
@@ -169,6 +185,10 @@
   .settings-form input:focus, .settings-form select:focus { border-color: var(--primary); outline:none;}
   .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
   .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
+
+  @media (max-width: 768px) {
+    .notice-img { max-width: 140px; width: 45%; margin: 5px 0 5px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -185,7 +205,7 @@
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
     <h3 style="margin-top:0; color:var(--success);">📌 報名說明</h3>
-    <div id="noticeContent" style="font-weight: bold; line-height: 1.6;"></div>
+    <div id="noticeContent" class="notice-wrapper" style="font-weight: bold; line-height: 1.6;"></div>
   </div>
 
   <div class="card">
@@ -314,11 +334,8 @@
   let currentClassStudents = []; 
   let sysClasses = []; 
   
-  // Modal 狀態與 Callback
   let confirmCallback = null;
   let adminNextAction = null; 
-  
-  // 紀錄目前正在替換(修改)的狀態
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
   // ================== UI 輔助函式 ==================
@@ -367,9 +384,23 @@
         sysConfig.groupLimit = data.groupLimit || 20; 
         sysClasses = data.classes || [];
 
-        if(data.notices && data.notices.length > 0) {
+        // 處理說明與圖片渲染 (文繞圖)
+        if((data.notices && data.notices.length > 0) || data.imageUrl) {
           document.getElementById('noticeCard').style.display = 'block';
-          document.getElementById('noticeContent').innerHTML = data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
+          
+          let contentHtml = '';
+          if(data.imageUrl) {
+             let imgUrl = data.imageUrl;
+             const driveMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+             if(driveMatch && driveMatch[1]) {
+                 imgUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+             }
+             contentHtml += `<img src="${imgUrl}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
+          }
+          if(data.notices) {
+             contentHtml += data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
+          }
+          document.getElementById('noticeContent').innerHTML = contentHtml;
         }
 
         const select = document.getElementById('classSelect');
@@ -387,7 +418,7 @@
       });
   };
 
-  // ================== 查詢班級學生 (下拉觸發) ==================
+  // ================== 查詢班級學生 ==================
   function queryStudents() {
     const cls = document.getElementById('classSelect').value;
     
@@ -432,7 +463,6 @@
       });
   }
 
-  // ================== 渲染與下拉操作邏輯 ==================
   function updateStats() {
       const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
       const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
@@ -453,7 +483,6 @@
   function handleStatusChange(rowIndex, newValue) {
       const stu = currentClassStudents.find(s => s.rowIndex === rowIndex);
       
-      // 檢查是否超過單班額度
       if (newValue === 'main') {
           const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
           const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
@@ -521,7 +550,6 @@
     updateStats();
   }
 
-  // ================== 送出儲存 ==================
   function submitGroup() {
       const payload = [];
       const cls = document.getElementById('classSelect').value;
@@ -535,7 +563,6 @@
           } else if (stu.currentStatus === 'wait') {
               payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取1` });
           } else {
-              // 對於被拉回不參加的人，設為 0
               payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
           }
       });
@@ -564,7 +591,7 @@
       showConfirm("儲存確認", "確定要儲存目前的報名狀態嗎？\n(名單上顯示不參加者，若原先已報名將會被取消)", doSubmit, "確定送出", "blue");
   }
 
-  // ================== 檢視全校已報名清單 (新增修改按鈕 + 報名統計) ==================
+  // ================== 檢視全校已報名清單 ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList`)
@@ -575,7 +602,6 @@
         
         document.getElementById('statsBar').style.display = 'none'; 
         
-        // 1. 報名統計 (計算不重複組數)
         const groupSet = new Set();
         data.rows.forEach(r => {
             if(r.group) groupSet.add(r.group);
@@ -631,7 +657,7 @@
       });
   }
 
-  // ================== 管理員進階設定與驗證 ==================
+  // ================== 管理員功能與替換 ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     document.getElementById('adminPwd').value = '';
@@ -652,7 +678,6 @@
     }
   }
 
-  // ================== 已報名名單的【修改】功能 ==================
   function handleEditSignedBtn(rowIndex, className, group) {
       showAdminModal(() => {
           startEditSigned(rowIndex, className, group);
