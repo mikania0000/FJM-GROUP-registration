@@ -350,7 +350,7 @@
   // ================== 初始化載入 ==================
   window.onload = () => {
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getInitData`)
+    fetch(`${GAS_API_URL}?action=getInitData&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         if(data.error) throw new Error(data.error);
@@ -402,7 +402,7 @@
     }
 
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}`)
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         showLoader(false);
@@ -594,7 +594,7 @@
   // ================== 全校已報名清單 (新增多層次排序邏輯) ==================
   function fetchSignedList() {
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getSignedList`)
+    fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         showLoader(false);
@@ -637,23 +637,13 @@
 
         // ================== 多層次排序演算法 ==================
         data.rows.sort((a, b) => {
-            const offA = String(a.officialGroup || '').trim();
-            const offB = String(b.officialGroup || '').trim();
-            
-            if (offA && !offB) return -1;
-            if (!offA && offB) return 1;
-            if (offA && offB) {
-                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
-                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
-                if (numA !== numB) return numA - numB;
-            }
-
             const groupA = String(a.group || '');
             const groupB = String(b.group || '');
             
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
+            // 1. 跨班一律排在最後面
             if (isCrossA && !isCrossB) return 1;
             if (!isCrossA && isCrossB) return -1;
             if (isCrossA && isCrossB) {
@@ -665,9 +655,22 @@
                 return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
+            // 2. 依正式組別排 (第X組)
+            const offA = String(a.officialGroup || '').trim();
+            const offB = String(b.officialGroup || '').trim();
+            if (offA && !offB) return -1;
+            if (!offA && offB) return 1;
+            if (offA && offB) {
+                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+
+            // 3. 一般班級排序
             const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
             if (classCmp !== 0) return classCmp;
 
+            // 4. 正取在前、備取在後
             const isMainA = groupA.includes('正取') || groupA.includes('個人');
             const isMainB = groupB.includes('正取') || groupB.includes('個人');
             if (isMainA && !isMainB) return -1;
@@ -679,6 +682,7 @@
                 if (numA !== numB) return numA - numB;
             }
 
+            // 5. 座號排序
             return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
         });
 
@@ -750,7 +754,7 @@
 
   function startEditSigned(rowIndex, className, oldGroup) {
       showLoader(true);
-      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}`)
+      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
             showLoader(false);
@@ -844,7 +848,7 @@
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    fetch(GAS_API_URL, {
+    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'getBasicSettings' })
     })
@@ -974,13 +978,14 @@
     if(!cls) { stuSel.innerHTML = '<option value="">-- 先選班級 --</option>'; return; }
     
     stuSel.innerHTML = '<option value="">載入中...</option>';
-    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}`)
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
           stuSel.innerHTML = '<option value="">-- 選擇學生 --</option>';
           data.rows.forEach(stu => {
               const isReg = (stu.E == 1 || stu.E == '1');
-              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${isReg ? ' (已報名)' : ''}</option>`;
+              const mark = isReg ? ' (已報名)' : '';
+              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${mark}</option>`;
           });
       });
   }
