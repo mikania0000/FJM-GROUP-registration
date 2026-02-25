@@ -624,6 +624,48 @@
             return;
         }
 
+        // 加入排序邏輯：班級 -> 組別(正取>備取) -> 跨班排最後
+        data.rows.sort((a, b) => {
+            const groupA = String(a.group || '');
+            const groupB = String(b.group || '');
+            const isCrossA = groupA.includes('跨班');
+            const isCrossB = groupB.includes('跨班');
+
+            // 1. 跨班一律排在最下面
+            if (isCrossA && !isCrossB) return 1;
+            if (!isCrossA && isCrossB) return -1;
+
+            // 2. 如果都是跨班，依照跨班數字排序，再排班級、座號
+            if (isCrossA && isCrossB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+                const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+                if (classCmp !== 0) return classCmp;
+                return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
+            }
+
+            // 3. 一般班級，先看班級
+            const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+            if (classCmp !== 0) return classCmp;
+
+            // 4. 同班級，正取優先於備取
+            const isMainA = groupA.includes('正取');
+            const isMainB = groupB.includes('正取');
+            if (isMainA && !isMainB) return -1;
+            if (!isMainA && isMainB) return 1;
+
+            // 5. 如果都是備取，依備取數字排序
+            if (!isMainA && !isMainB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+
+            // 6. 最後按座號排序
+            return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
+        });
+
         const thead = `<tr><th>班級</th><th>座號</th><th>姓名</th><th>學號</th><th>組別</th><th>正式組別</th><th style="text-align:center;">操作</th></tr>`;
         const tbody = data.rows.map(r => {
             let tagClass = r.group.includes('正取') ? 'main' : (r.group.includes('備取') ? 'wait' : 'primary');
