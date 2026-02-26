@@ -94,9 +94,6 @@
   .btn.green { background: var(--success); }
   .btn.red { background: var(--danger); }
   .btn.yellow { background: var(--warning); color: #fff; }
-  /* 新增粉紅色按鈕樣式 */
-  .btn.pink { background: #ec4899; color: #fff; }
-  .btn.pink:hover { background: #db2777; }
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
@@ -360,7 +357,7 @@
   }
   function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green') {
     document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
+    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : 'var(--primary)');
     document.getElementById('confirmMessage').textContent = message;
     const btn = document.getElementById('confirmBtn');
     btn.textContent = btnText;
@@ -1052,7 +1049,7 @@
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定下載", "pink");
+      }, "確定下載", "blue");
   }
 
   // ================== 跨班與確定分組 ==================
