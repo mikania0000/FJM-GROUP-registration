@@ -49,11 +49,6 @@
     margin-left: 8px;
     letter-spacing: normal;
   }
-  
-  .version-error {
-    color: #ffd700;
-    font-weight: bold;
-  }
 
   .toast {
     position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
@@ -154,7 +149,7 @@
   .tag.main { background: var(--success); }
   .tag.wait { background: var(--warning); }
   .tag.primary { background: var(--primary); }
-  .tag.gray { background: #e2e8f0; color: transparent; } /* 透明的佔位符 */
+  .tag.gray { background: #e2e8f0; color: transparent; } 
   
   /* 動態分配的 10 種組別顏色 */
   .tag.group-color-0 { background: #8b5cf6; } /* 紫色 */
@@ -335,7 +330,7 @@
 
 <script>
   // ==========================================
-  // ⚠️ 部署設定區：請替換為您的 GAS 網頁應用程式網址
+  // ⚠️ 這裡的網址已更新為您提供的最新部署 API
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
@@ -385,9 +380,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        // ★ 偵測機制：確定有連線到新版後端
-        const backendVer = data.version ? data.version : '<span class="version-error">未更新(舊版)</span>';
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">前端v2.9.2 / 後端${backendVer}</span>`;
+        // 依照要求，標題只顯示乾淨的 v2.9.2
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.2</span>`;
         document.title = data.title;
         
         sysConfig = data; // 存入全域設定
@@ -624,7 +618,7 @@
       }, "確定送出", "blue");
   }
 
-  // ================== 全校已報名清單 (升級：正取優先，動態色彩群組) ==================
+  // ================== 全校已報名清單 (升級排序演算法與下載) ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
@@ -668,50 +662,48 @@
             return;
         }
 
-        // ================== 多層次排序演算法 (正取優先) ==================
+        // ================== 多層次排序演算法 (正式組別最優先) ==================
         data.rows.sort((a, b) => {
-            const groupA = String(a.group || '');
-            const groupB = String(b.group || '');
             const offA = String(a.officialGroup || '').trim();
             const offB = String(b.officialGroup || '').trim();
-            
+            const groupA = String(a.group || '');
+            const groupB = String(b.group || '');
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
-            // 1. 跨班一律排在最後面
-            if (isCrossA && !isCrossB) return 1;
-            if (!isCrossA && isCrossB) return -1;
-            
-            // 2. 正取在前、備取在後 (個人也算在正取類)
-            const isMainA = groupA.includes('正取') || groupA.includes('個人');
-            const isMainB = groupB.includes('正取') || groupB.includes('個人');
-            if (isMainA && !isMainB) return -1;
-            if (!isMainA && isMainB) return 1;
-
-            // 如果同為備取，依備取數字排序 (備取1, 備取2...)
-            if (!isMainA && !isMainB && !isCrossA && !isCrossB) {
-                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
-                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+            // 1. 正式組別絕對優先 (第X組)
+            if (offA && !offB) return -1;
+            if (!offA && offB) return 1;
+            if (offA && offB) {
+                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
                 if (numA !== numB) return numA - numB;
             }
-            
-            // 對於跨班，依跨班數字排序
+
+            // 2. 跨班排最後
+            if (isCrossA && !isCrossB) return 1;
+            if (!isCrossA && isCrossB) return -1;
             if (isCrossA && isCrossB) {
                 const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
                 const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
                 if (numA !== numB) return numA - numB;
+                const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+                if (classCmp !== 0) return classCmp;
+                return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
             // 3. 班級排序
             const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
             if (classCmp !== 0) return classCmp;
 
-            // 4. 正式組別排序 (第X組)
-            if (offA && !offB) return -1;
-            if (!offA && offB) return 1;
-            if (offA && offB) {
-                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
-                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
+            // 4. 正取在前、備取在後
+            const isMainA = groupA.includes('正取') || groupA.includes('個人');
+            const isMainB = groupB.includes('正取') || groupB.includes('個人');
+            if (isMainA && !isMainB) return -1;
+            if (!isMainA && isMainB) return 1;
+            if (!isMainA && !isMainB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
                 if (numA !== numB) return numA - numB;
             }
 
@@ -730,7 +722,7 @@
                 tagClass = 'primary';
             }
             
-            // ★ 動態分配組別顏色 (根據數字 0-9 選擇顏色類別)
+            // ★ 動態分配組別顏色
             let offColorClass = 'gray'; 
             let officialText = '-';
             let styleStr = 'background:transparent; color:transparent;';
@@ -741,10 +733,9 @@
                 const match = r.officialGroup.match(/\d+/);
                 if (match) {
                     const num = parseInt(match[0], 10);
-                    // 根據組別數字除以 10 取餘數，給予對應的 CSS class
                     offColorClass = 'group-color-' + (num % 10);
                 } else {
-                    offColorClass = 'success'; // 預設備用顏色
+                    offColorClass = 'success'; // 預備顏色
                 }
             }
 
@@ -967,27 +958,51 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== 公假單、跨班與確定分組 ==================
+  // ================== 公假單 (直接下載免權限) ==================
   function generateOfficeLeave() {
       document.getElementById('advancedMenuModal').style.display = 'none';
-      showConfirm("公假單確認", "產生「學務處公假單」PDF + Excel 嗎？", () => {
+      showConfirm("公假單產生", "確定要產生「學務處公假單」並直接下載嗎？", () => {
           showLoader(true);
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
           .then(res => res.json())
-          .then(data => { showLoader(false); if(data.error||!data.ok) throw new Error(data.message||'失敗'); showToast("✅ 已產生至雲端！"); })
+          .then(data => { 
+              showLoader(false); 
+              if(data.error||!data.ok) throw new Error(data.message||'失敗'); 
+              showToast("✅ 已為您產生檔案，即將自動下載！");
+              
+              // 透過新視窗直接觸發瀏覽器下載 (避開 GAS 權限問題)
+              window.open(data.pdfUrl, '_blank');
+              setTimeout(() => { window.open(data.excelUrl, '_blank'); }, 1000);
+          })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定產生", "blue");
+      }, "確定下載", "blue");
   }
 
   function generateClassLeave() {
       document.getElementById('advancedMenuModal').style.display = 'none';
-      showConfirm("公假單確認", "合併產生「班級公假單」PDF 嗎？", () => {
+      showConfirm("公假單產生", "確定要合併產生「班級公假單」並直接下載 PDF 嗎？", () => {
           showLoader(true);
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave' }) })
           .then(res => res.json())
-          .then(data => { showLoader(false); if(data.error||!data.ok) throw new Error(data.message||'失敗'); showToast(`✅ 已合併（共 ${data.count} 班）`); })
+          .then(data => { 
+              if(data.error||!data.ok) {
+                  showLoader(false);
+                  throw new Error(data.message||'失敗');
+              }
+              showToast(`✅ 已合併（共 ${data.count} 班），即將開始下載！`);
+              window.open(data.pdfUrl, '_blank');
+              
+              // 10秒後請後端把暫存檔案刪除
+              setTimeout(() => {
+                  fetch(GAS_API_URL, {
+                      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                      body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
+                  });
+                  showLoader(false);
+              }, 10000);
+          })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定合併", "blue");
+      }, "確定下載", "blue");
   }
 
   function confirmGroupAssignment() {
