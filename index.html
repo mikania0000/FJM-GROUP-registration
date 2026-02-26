@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.3</title>
+<title>報名系統 v2.9.4</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -187,6 +187,10 @@
   .btn-adv-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
   .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
   
+  /* 新增粉紅色按鈕樣式 (修復確定下載按鈕沒顏色的問題) */
+  .btn.pink { background: #ec4899; color: #fff; }
+  .btn.pink:hover { background: #db2777; }
+
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
   .settings-form label { font-weight: bold; color: var(--text-main); font-size: 14px; margin-bottom: -5px;}
   .settings-form input, .settings-form select { width: 100%; text-align: left; margin: 0; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; background:white; }
@@ -203,14 +207,14 @@
 
 <div id="loader">
   <div class="spinner"></div>
-  <div style="margin-top: 15px; font-weight: bold; color: var(--primary); font-size: 18px;">系統載入中...</div>
+  <div style="margin-top: 15px; font-weight: bold; color: var(--primary); font-size: 18px;">系統處理中...</div>
 </div>
 <div id="toast" class="toast"></div>
 
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.3</span>
+    報名系統 <span class="version-text">v2.9.4</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -332,7 +336,7 @@
 
 <script>
   // ==========================================
-  // ⚠️ API 網址維持您提供的部署
+  // ⚠️ 這裡的網址已更新為您提供的最新部署 API
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
@@ -374,6 +378,17 @@
     closeConfirmModal();
   }
 
+  // 小工具：安全觸發下載
+  function triggerDownload(url) {
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  }
+
   // ================== 初始化載入 ==================
   window.onload = () => {
     showLoader(true);
@@ -382,8 +397,9 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.3</span>`;
-        document.title = data.title;
+        // ★ 簡單顯示 v2.9.4
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.4</span>`;
+        document.title = `${data.title} v2.9.4`;
         
         sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
@@ -619,7 +635,7 @@
       }, "確定送出", "blue");
   }
 
-  // ================== 全校已報名清單 (升級：正式組別優先 + 顏色動態分配) ==================
+  // ================== 全校已報名清單 ==================
   function fetchSignedList() {
     showLoader(true);
     fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
@@ -663,7 +679,6 @@
             return;
         }
 
-        // ================== 全新多層次排序演算法 ==================
         data.rows.sort((a, b) => {
             const offA = String(a.officialGroup || '').trim();
             const offB = String(b.officialGroup || '').trim();
@@ -672,7 +687,6 @@
             const isCrossA = groupA.includes('跨班');
             const isCrossB = groupB.includes('跨班');
 
-            // 1. 正式組別絕對優先 (第X組)
             if (offA && !offB) return -1;
             if (!offA && offB) return 1;
             if (offA && offB) {
@@ -681,8 +695,6 @@
                 if (numA !== numB) return numA - numB;
             }
 
-            // ---- 以下是沒有正式組別的情況 ----
-            // 2. 跨班排最後
             if (isCrossA && !isCrossB) return 1;
             if (!isCrossA && isCrossB) return -1;
             if (isCrossA && isCrossB) {
@@ -694,11 +706,9 @@
                 return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
             }
 
-            // 3. 一般班級排序
             const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
             if (classCmp !== 0) return classCmp;
 
-            // 4. 正取在前、備取在後 (個人也算在正取類)
             const isMainA = groupA.includes('正取') || groupA.includes('個人');
             const isMainB = groupB.includes('正取') || groupB.includes('個人');
             if (isMainA && !isMainB) return -1;
@@ -710,7 +720,6 @@
                 if (numA !== numB) return numA - numB;
             }
 
-            // 5. 座號排序
             return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
         });
 
@@ -725,7 +734,6 @@
                 tagClass = 'primary';
             }
             
-            // ★ 動態分配組別顏色
             let offColorClass = 'gray'; 
             let officialText = '-';
             let styleStr = 'background:transparent; color:transparent;';
@@ -736,10 +744,9 @@
                 const match = r.officialGroup.match(/\d+/);
                 if (match) {
                     const num = parseInt(match[0], 10);
-                    // 根據組別數字除以 10 取餘數，給予對應的 CSS class
                     offColorClass = 'group-color-' + (num % 10);
                 } else {
-                    offColorClass = 'success'; // 預設備用顏色
+                    offColorClass = 'success'; 
                 }
             }
 
@@ -975,23 +982,24 @@
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
           .then(res => res.json())
           .then(data => { 
+              // ★ 修正旋轉圈圈 Bug：無論成功或失敗都提早關閉 Loader
+              showLoader(false); 
+              
               if(data.error||!data.ok) {
-                  showLoader(false);
                   throw new Error(data.message||'失敗');
               }
               showToast("✅ 已為您產生檔案，即將自動下載！");
               
               // 透過新視窗直接觸發瀏覽器下載 (避開 GAS 權限問題)
-              window.open(data.pdfUrl, '_blank');
-              setTimeout(() => { window.open(data.excelUrl, '_blank'); }, 1000);
+              triggerDownload(data.pdfUrl);
+              setTimeout(() => { triggerDownload(data.excelUrl); }, 1000);
 
-              // 清除暫存檔
+              // 延遲清除暫存檔
               setTimeout(() => {
                   fetch(GAS_API_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                       body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
                   });
-                  showLoader(false);
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
@@ -1005,20 +1013,19 @@
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave' }) })
           .then(res => res.json())
           .then(data => { 
+              showLoader(false);
+              
               if(data.error||!data.ok) {
-                  showLoader(false);
                   throw new Error(data.message||'失敗');
               }
               showToast(`✅ 已合併（共 ${data.count} 班），即將開始下載！`);
-              window.open(data.pdfUrl, '_blank');
+              triggerDownload(data.pdfUrl);
               
-              // 給瀏覽器一點時間下載，然後讓後端把暫存檔案刪除
               setTimeout(() => {
                   fetch(GAS_API_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                       body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
                   });
-                  showLoader(false);
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
@@ -1033,20 +1040,19 @@
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateGroupData' }) })
           .then(res => res.json())
           .then(data => { 
+              showLoader(false);
+              
               if(data.error||!data.ok) {
-                  showLoader(false);
                   throw new Error(data.message||'失敗，請確認是否已有正式分組資料');
               }
               showToast(`✅ 分組資料整理完成，即將開始下載！`);
-              window.open(data.excelUrl, '_blank');
+              triggerDownload(data.excelUrl);
               
-              // 刪除暫存檔
               setTimeout(() => {
                   fetch(GAS_API_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                       body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
                   });
-                  showLoader(false);
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
