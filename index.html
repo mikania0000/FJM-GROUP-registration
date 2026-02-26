@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.8</title>
+<title>報名系統 v2.9.9</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -192,7 +192,7 @@
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
   .settings-form label { font-weight: bold; color: var(--text-main); font-size: 14px; margin-bottom: -5px;}
   .settings-form input, .settings-form select { width: 100%; text-align: left; margin: 0; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; background:white; }
-  .settings-form input:focus, .settings-form select:focus { border-color: var(--primary); outline:none;}
+  .settings-form input:focus, .settings-form select:focus, .settings-form textarea:focus { border-color: var(--primary); outline:none;}
   .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
   .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
 
@@ -212,7 +212,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.8</span>
+    報名系統 <span class="version-text">v2.9.9</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -405,9 +405,9 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        // ★ 簡化顯示版本號為 v2.9.8
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.8</span>`;
-        document.title = `${data.title} v2.9.8`;
+        // ★ 簡化顯示版本號為 v2.9.9
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.9</span>`;
+        document.title = `${data.title} v2.9.9`;
         
         sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
@@ -796,7 +796,6 @@
     const pwdInput = document.getElementById('adminPwd');
     pwdInput.value = '';
     document.getElementById('adminPwdModal').style.display = 'flex';
-    // ★ 修正游標 focus：設定一點延遲讓元素顯示後再對焦
     setTimeout(() => {
       pwdInput.focus();
     }, 50);
@@ -912,7 +911,7 @@
     }, "確認清除全部", "red");
   }
 
-  // ===== 注意事項設定 =====
+  // ===== ★ 注意事項設定 (第1項改為文字區塊 TextArea) =====
   function openNoticeSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -928,11 +927,19 @@
       const formContainer = document.getElementById('noticeFormContainer');
       formContainer.innerHTML = '';
       
-      // 產出 9 個輸入框對應 A2:A10
       for (let i = 0; i < 9; i++) {
           const val = (data.data && data.data[i]) ? data.data[i][0] : '';
           const div = document.createElement('div');
-          div.innerHTML = `<label>第 ${i + 1} 項</label><input type="text" class="notice-input" value="${val}" placeholder="留白即代表不顯示" />`;
+          
+          if (i === 0) {
+              // 第一項改為多行輸入框
+              div.innerHTML = `
+                <label>第 ${i + 1} 項</label>
+                <textarea class="notice-input" rows="3" placeholder="留白即代表不顯示" 
+                          style="width: 100%; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; font-family: inherit; resize: vertical; margin-bottom: 10px;">${val}</textarea>`;
+          } else {
+              div.innerHTML = `<label>第 ${i + 1} 項</label><input type="text" class="notice-input" value="${val}" placeholder="留白即代表不顯示" />`;
+          }
           formContainer.appendChild(div);
       }
       document.getElementById('noticeSettingsModal').style.display = 'flex';
@@ -1035,7 +1042,7 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== 公假單 (直接下載免權限) ==================
+  // ================== 公假單 (修改為雙軌下載：Excel 無印章, PDF 有印章) ==================
   function generateOfficeLeave() {
       document.getElementById('advancedMenuModal').style.display = 'none';
       showConfirm("公假單產生", "確定要產生「學務處公假單」並直接下載嗎？", () => {
@@ -1051,8 +1058,9 @@
               showToast("✅ 已為您產生檔案，即將自動下載！");
               
               triggerDownload(data.pdfUrl);
-              setTimeout(() => { triggerDownload(data.excelUrl); }, 1000);
+              setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
 
+              // 延遲刪除暫存檔 (因為我們產生了兩份檔案給您)
               setTimeout(() => {
                   fetch(GAS_API_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1090,7 +1098,7 @@
       }, "確定下載", "blue");
   }
 
-  // ================== ★ 新增：分組資料下載 ==================
+  // ================== 分組資料下載 ==================
   function generateGroupData() {
       document.getElementById('advancedMenuModal').style.display = 'none';
       showConfirm("分組資料產生", "確定要整理分組資料並下載 Excel 嗎？\n(將自動合併隊員名單供參考使用)", () => {
