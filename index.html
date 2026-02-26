@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.4</title>
+<title>報名系統 v2.9.5</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -94,6 +94,9 @@
   .btn.green { background: var(--success); }
   .btn.red { background: var(--danger); }
   .btn.yellow { background: var(--warning); color: #fff; }
+  /* 新增粉紅色按鈕樣式 */
+  .btn.pink { background: #ec4899; color: #fff; }
+  .btn.pink:hover { background: #db2777; }
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
@@ -187,10 +190,6 @@
   .btn-adv-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
   .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
   
-  /* 新增粉紅色按鈕樣式 (修復確定下載按鈕沒顏色的問題) */
-  .btn.pink { background: #ec4899; color: #fff; }
-  .btn.pink:hover { background: #db2777; }
-
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
   .settings-form label { font-weight: bold; color: var(--text-main); font-size: 14px; margin-bottom: -5px;}
   .settings-form input, .settings-form select { width: 100%; text-align: left; margin: 0; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; background:white; }
@@ -214,7 +213,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.4</span>
+    報名系統 <span class="version-text">v2.9.5</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -336,7 +335,7 @@
 
 <script>
   // ==========================================
-  // ⚠️ 這裡的網址已更新為您提供的最新部署 API
+  // ⚠️ API 網址維持您提供的部署
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
@@ -361,7 +360,7 @@
   }
   function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green') {
     document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : 'var(--primary)');
+    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
     document.getElementById('confirmMessage').textContent = message;
     const btn = document.getElementById('confirmBtn');
     btn.textContent = btnText;
@@ -397,9 +396,9 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        // ★ 簡單顯示 v2.9.4
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.4</span>`;
-        document.title = `${data.title} v2.9.4`;
+        // ★ 簡化顯示版本號為 v2.9.5
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.5</span>`;
+        document.title = `${data.title} v2.9.5`;
         
         sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
@@ -982,7 +981,6 @@
           fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
           .then(res => res.json())
           .then(data => { 
-              // ★ 修正旋轉圈圈 Bug：無論成功或失敗都提早關閉 Loader
               showLoader(false); 
               
               if(data.error||!data.ok) {
@@ -990,11 +988,9 @@
               }
               showToast("✅ 已為您產生檔案，即將自動下載！");
               
-              // 透過新視窗直接觸發瀏覽器下載 (避開 GAS 權限問題)
               triggerDownload(data.pdfUrl);
               setTimeout(() => { triggerDownload(data.excelUrl); }, 1000);
 
-              // 延遲清除暫存檔
               setTimeout(() => {
                   fetch(GAS_API_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
