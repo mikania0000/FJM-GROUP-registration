@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.5</title>
+<title>報名系統 v2.9.8</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -94,6 +94,8 @@
   .btn.green { background: var(--success); }
   .btn.red { background: var(--danger); }
   .btn.yellow { background: var(--warning); color: #fff; }
+  .btn.pink { background: #ec4899; color: #fff; }
+  .btn.pink:hover { background: #db2777; }
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
@@ -210,7 +212,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.5</span>
+    報名系統 <span class="version-text">v2.9.8</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -279,15 +281,14 @@
     <h3 style="margin-top:0; color: var(--text-main);">⚙️ 進階設定</h3>
     <div class="adv-grid">
       <button class="btn-adv btn-adv-red" onclick="triggerResetDefaults()"><span style="font-size:28px;">🗑️</span>1. 回復預設值</button>
-      <button class="btn-adv btn-adv-blue" onclick="openBasicSettings()"><span style="font-size:28px;">📝</span>2. 基本設定</button>
-      <button class="btn-adv btn-adv-green" onclick="generateOfficeLeave()"><span style="font-size:28px;">🏫</span>3. 學務處公假單</button>
-      <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>4. 班級公假單</button>
-      <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>5. 雲端資料夾</button>
-      <button class="btn-adv btn-adv-orange" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>6. 跨班組隊</button>
-      <button class="btn-adv btn-adv-slate" onclick="confirmGroupAssignment()"><span style="font-size:28px;">🏷️</span>7. 確定分組</button>
-      <!-- 新增 8. 分組資料 按鈕 -->
-      <button class="btn-adv btn-adv-pink" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>8. 分組資料</button>
-      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>9. 預備功能</button>
+      <button class="btn-adv btn-adv-orange" onclick="openNoticeSettings()"><span style="font-size:28px;">📢</span>2. 注意事項設定</button>
+      <button class="btn-adv btn-adv-blue" onclick="openBasicSettings()"><span style="font-size:28px;">📝</span>3. 基本設定</button>
+      <button class="btn-adv btn-adv-green" onclick="generateOfficeLeave()"><span style="font-size:28px;">🏫</span>4. 學務處公假單</button>
+      <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>5. 班級公假單</button>
+      <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>6. 雲端資料夾</button>
+      <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>7. 跨班組隊</button>
+      <button class="btn-adv btn-adv-pink" onclick="confirmGroupAssignment()"><span style="font-size:28px;">🏷️</span>8. 確定分組</button>
+      <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>9. 分組資料</button>
       <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>10. 預備功能</button>
     </div>
     <button class="btn outline-gray" style="margin-top:25px; width: 100%; padding: 12px; font-size: 18px;" onclick="closeAllModals()">關閉選單</button>
@@ -301,6 +302,17 @@
     <div style="display: flex; gap: 10px; margin-top: 20px;">
       <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('basicSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
       <button class="btn green" style="flex:1;" onclick="saveBasicSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="noticeSettingsModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--warning);">📢 注意事項設定 (最多9項)</h3>
+    <div class="settings-form" id="noticeFormContainer"></div>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('noticeSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn yellow" style="flex:1;" onclick="saveNoticeSettings()">儲存設定</button>
     </div>
   </div>
 </div>
@@ -357,7 +369,7 @@
   }
   function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green') {
     document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : 'var(--primary)');
+    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
     document.getElementById('confirmMessage').textContent = message;
     const btn = document.getElementById('confirmBtn');
     btn.textContent = btnText;
@@ -393,9 +405,9 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        // ★ 簡化顯示版本號為 v2.9.5
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.5</span>`;
-        document.title = `${data.title} v2.9.5`;
+        // ★ 簡化顯示版本號為 v2.9.8
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.8</span>`;
+        document.title = `${data.title} v2.9.8`;
         
         sysConfig = data; // 存入全域設定
         sysClasses = data.classes || [];
@@ -900,6 +912,59 @@
     }, "確認清除全部", "red");
   }
 
+  // ===== 注意事項設定 =====
+  function openNoticeSettings() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getNoticeSettings' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      
+      const formContainer = document.getElementById('noticeFormContainer');
+      formContainer.innerHTML = '';
+      
+      // 產出 9 個輸入框對應 A2:A10
+      for (let i = 0; i < 9; i++) {
+          const val = (data.data && data.data[i]) ? data.data[i][0] : '';
+          const div = document.createElement('div');
+          div.innerHTML = `<label>第 ${i + 1} 項</label><input type="text" class="notice-input" value="${val}" placeholder="留白即代表不顯示" />`;
+          formContainer.appendChild(div);
+      }
+      document.getElementById('noticeSettingsModal').style.display = 'flex';
+    })
+    .catch(err => {
+      showLoader(false); showToast("讀取失敗", "error");
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
+  }
+
+  function saveNoticeSettings() {
+    const payload = [];
+    document.querySelectorAll('#noticeFormContainer .notice-input').forEach((input) => {
+        payload.push(input.value.trim());
+    });
+
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'saveNoticeSettings', payload: payload })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("注意事項儲存成功，即將重新載入！");
+      setTimeout(() => window.location.reload(), 1500);
+    })
+    .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
+  }
+
+  // ===== 基本設定 =====
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
