@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.16</title>
+<title>報名系統 v2.9.17</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -53,7 +53,7 @@
   .toast {
     position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
     color: #fff; padding: 14px 28px; border-radius: 999px; box-shadow: var(--shadow-lg);
-    z-index: 9999; /* ★ 修正：拉到最頂層，避免被 Modal 蓋住 */
+    z-index: 9999;
     display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
   }
   .toast.show { display: block; animation: popDown 0.3s ease forwards; }
@@ -64,7 +64,7 @@
 
   #loader {
     position: fixed; inset: 0; background: rgba(255,255,255,0.85); 
-    z-index: 9998; /* ★ 修正：拉到對話框之上，避免轉圈圈看不到 */
+    z-index: 9998; 
     display: none; justify-content: center; align-items: center; flex-direction: column;
   }
   .spinner {
@@ -109,7 +109,40 @@
   }
 
   .notice-wrapper { display: flow-root; }
-  .notice-img { float: right; max-width: 250px; width: 40%; margin: 5px 0 15px 20px; border-radius: 10px; box-shadow: var(--shadow-md); border: 3px solid #a7f3d0; object-fit: cover; background: #fff; }
+  
+  /* 一般圖片的樣式 */
+  .notice-img { 
+    float: right; 
+    max-width: 250px; 
+    width: 40%; 
+    margin: 5px 0 15px 20px; 
+    border-radius: 10px; 
+    box-shadow: var(--shadow-md); 
+    border: 3px solid #a7f3d0; 
+    object-fit: cover; 
+    background: #fff; 
+  }
+  
+  /* ★ Canva 專屬嵌入框樣式：去除綠色邊框與白底，並自動適應 A4 比例 */
+  .notice-img.canva-frame {
+    border: none;
+    background: transparent;
+    box-shadow: var(--shadow-lg);
+    aspect-ratio: 1 / 1.414; /* 預設 A4 比例 */
+    height: auto;
+    max-width: 320px;
+  }
+
+  /* ★ 手機版針對 Canva 嵌入框做滿版優化，不跟文字擠在一起 */
+  @media (max-width: 768px) {
+    .notice-img { max-width: 140px; width: 45%; margin: 5px 0 5px 12px; }
+    .notice-img.canva-frame {
+      float: none;
+      width: 100%;
+      max-width: 100%;
+      margin: 15px 0;
+    }
+  }
 
   /* ===== 浮動狀態與統計列 ===== */
   .sticky-stats {
@@ -184,7 +217,6 @@
   .modal-large { max-width: 600px; }
   .modal input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center; }
 
-  /* ★ 確保輸入密碼跟確認提示的 Modal 永遠在最上層，不會被跨班視窗蓋住 */
   #confirmModal, #adminPwdModal {
     z-index: 2000;
   }
@@ -209,10 +241,6 @@
   .settings-form input:focus, .settings-form select:focus, .settings-form textarea:focus { border-color: var(--primary); outline:none;}
   .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
   .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
-
-  @media (max-width: 768px) {
-    .notice-img { max-width: 140px; width: 45%; margin: 5px 0 5px 12px; }
-  }
 </style>
 </head>
 <body>
@@ -226,7 +254,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.16</span>
+    報名系統 <span class="version-text">v2.9.17</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -417,8 +445,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.16</span>`;
-        document.title = `${data.title} v2.9.16`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.17</span>`;
+        document.title = `${data.title} v2.9.17`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -432,8 +460,8 @@
              // 判斷是否為 Canva 設計連結
              if (url.includes('canva.com/design/')) {
                  let baseUrl = url.split('/view')[0] + '/view?embed';
-                 // ★ 修正：拿掉固定的 height: 350px，改用 aspect-ratio: 1 / 1.414 (A4比例) 與 height: auto，消除黑邊
-                 contentHtml += `<iframe src="${baseUrl}" class="notice-img" style="border: none; overflow: hidden; aspect-ratio: 1 / 1.414; height: auto;" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
+                 // ★ 修改：加上 canva-frame 專屬類別，觸發去除外框與適應高度的 CSS
+                 contentHtml += `<iframe src="${baseUrl}" class="notice-img canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
              } else {
                  // 一般雲端硬碟圖片或直接圖片連結
                  const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
