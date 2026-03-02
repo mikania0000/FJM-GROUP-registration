@@ -1,689 +1,1364 @@
-/**
- * @NotOnlyCurrentDoc
- * 報名系統後端 API (v2.9.27 - 加寬公假單各欄位，完美撐滿 A4 頁面寬度)
- * 試算表：14nQKNJE89AOt9w86TG5RiXnpDWaBoFL41Xwx0x0Y5Ww
- */
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>報名系統 v2.9.27</title>
+<style>
+  :root {
+    --primary: #2563eb;       
+    --primary-light: #dbeafe; 
+    --success: #059669;       
+    --success-light: #dcfce7;
+    --danger: #e11d48;        
+    --warning: #d97706;       
+    --warning-light: #fef3c7;
+    --info: #0ea5e9;          
+    --bg-page: #f1f5f9;       
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  }
 
-const SPREADSHEET_ID = '14nQKNJE89AOt9w86TG5RiXnpDWaBoFL41Xwx0x0Y5Ww';
-// 您的印章圖片檔案 ID (強烈建議使用「透明背景的 PNG 檔」)
-const STAMP_FILE_ID = '1rbHpY9mjOLVJA_2IvmxRglR8wMZZQgCy'; 
-
-const SHEET = { 
-  學生: '學生', 注意事項: '注意事項', 基本資料: '基本資料', 網址: '網址', 參加名單: '參加名單',
-  學務處公假單: '學務處公假單', 班級公假單: '班級公假單'
-};
-const COL = { A: 1, B: 2, C: 3, E: 5, F: 6 }; 
-
-// ===================== 專門用來觸發所有權限的函數 =====================
-function step1_FixPermissions() {
-  var dummyFile = DriveApp.createFile("測試權限.txt", "這是用來開通權限的暫存檔，稍後會自動刪除");
-  dummyFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  dummyFile.setTrashed(true);
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   
-  DriveApp.getRootFolder();
-  UrlFetchApp.fetch('https://www.google.com');
-  SpreadsheetApp.getActiveSpreadsheet().getName();
-  console.log("🎉 所有權限皆已成功開通！");
-}
-
-function doGet(e) {
-  const action = e.parameter.action;
-  let result = {};
-  try {
-    if (action === 'getInitData') result = getInitData();
-    else if (action === 'queryByClass') result = queryByClass(e.parameter.className);
-    else if (action === 'getSignedList') result = getSignedList();
-    else result = { error: 'Unknown action' };
-  } catch (err) { result = { error: err.message }; }
-  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  let result = {};
-  try {
-    const data = JSON.parse(e.postData.contents);
-    if (data.action === 'saveGroupSignup') result = saveGroupSignup(data.payload);
-    else if (data.action === 'resetDefaults') result = resetStudentsParticipationToZero();
-    else if (data.action === 'getBasicSettings') result = getBasicSettings();
-    else if (data.action === 'saveBasicSettings') result = saveBasicSettings(data.payload);
-    else if (data.action === 'getNoticeSettings') result = getNoticeSettings();
-    else if (data.action === 'saveNoticeSettings') result = saveNoticeSettings(data.payload);
-    else if (data.action === 'saveCrossClassTeam') result = saveCrossClassTeam(data.payload);
-    else if (data.action === 'generateOfficeLeave') result = generateOfficeLeave();
-    else if (data.action === 'generateClassLeave') result = generateMergedClassLeavePdf();
-    else if (data.action === 'generateGroupData') result = generateGroupDataExcel();
-    else if (data.action === 'deleteTempSheet') result = deleteTempSheet(data.payload);
-    else if (data.action === 'confirmGroups') result = confirmGroups();
-    else if (data.action === 'cancelGroups') result = cancelGroups();
-    else result = { error: 'Unknown action' };
-  } catch (err) { result = { error: err.message }; }
-  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function getSheet_(name) { 
-  const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name); 
-  if(!sh) throw new Error('找不到工作表：「' + name + '」');
-  return sh;
-}
-
-function lastRowInColumn_(sheet, col = 1, startRow = 1) {
-  const values = sheet.getRange(startRow, col, sheet.getMaxRows() - startRow + 1, 1).getDisplayValues();
-  let last = startRow - 1;
-  for (let i = values.length - 1; i >= 0; i--) { if (values[i][0] !== '') { last = startRow + i; break; } }
-  return Math.max(last, startRow - 1);
-}
-
-function getInitData() {
-  const basicSh = getSheet_(SHEET.基本資料);
-  const title = (basicSh.getRange('B1').getDisplayValue() || '報名系統').trim();
-  const regMode = (basicSh.getRange('B8').getDisplayValue() || '分組').trim(); 
-  const individualLimit = Number(basicSh.getRange('B9').getValue()) || 40;
-  const groupSize = Number(basicSh.getRange('B10').getValue()) || 3;
-  const mainGroups = Number(basicSh.getRange('B11').getValue()) || 1;
-  const waitlistCount = Number(basicSh.getRange('B12').getValue()) || 1;
-  const groupLimit = Number(basicSh.getRange('B13').getValue()) || 19; 
-  const imageUrl = basicSh.getRange('B14').getDisplayValue().trim() || basicSh.getRange('B12').getDisplayValue().trim(); 
-
-  const noticeSh = getSheet_(SHEET.注意事項);
-  const notices = [];
-  if (noticeSh) {
-    const lastNotice = lastRowInColumn_(noticeSh, 1, 2);
-    if (lastNotice >= 2) notices.push(...noticeSh.getRange(2, 1, lastNotice - 1, 1).getDisplayValues().map(r => r[0]).filter(Boolean));
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg-page); color: var(--text-main);
+    font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
+    padding-bottom: 40px; 
   }
-
-  const stuSh = getSheet_(SHEET.學生);
-  let classes = [];
-  if (stuSh) {
-    const lastA = lastRowInColumn_(stuSh, COL.A, 2);
-    if (lastA >= 2) {
-      classes = stuSh.getRange(2, COL.A, lastA - 1, 1).getDisplayValues().map(r => r[0]).filter(Boolean);
-      classes = Array.from(new Set(classes)).sort((a, b) => ('' + a).localeCompare(('' + b), 'zh-Hant', { numeric: true }));
-    }
-  }
-  return { version: 'v2.9.27', title, notices, classes, regMode, individualLimit, groupSize, mainGroups, waitlistCount, groupLimit, imageUrl };
-}
-
-function getBasicSettings() {
-  const sh = getSheet_(SHEET.基本資料);
-  const lastRow = sh.getLastRow();
-  if(lastRow < 1) return { ok: true, data: [] };
-  const data = sh.getRange(1, 1, lastRow, 2).getDisplayValues();
-  return { ok: true, data: data };
-}
-
-function saveBasicSettings(payload) {
-  try {
-    const sh = getSheet_(SHEET.基本資料);
-    for (let i = 0; i < payload.length; i++) {
-        sh.getRange(i + 1, 2).setValue(payload[i]);
-    }
-    SpreadsheetApp.flush();
-    return { ok: true };
-  } catch (e) { return { ok: false, message: e.message }; }
-}
-
-function getNoticeSettings() {
-  const sh = getSheet_(SHEET.注意事項);
-  const data = sh.getRange(2, 1, 9, 1).getDisplayValues(); 
-  return { ok: true, data: data };
-}
-
-function saveNoticeSettings(payload) {
-  try {
-    const sh = getSheet_(SHEET.注意事項);
-    sh.getRange(2, 1, 9, 1).clearContent(); 
-    const values = payload.map(text => [text]);
-    while(values.length < 9) { values.push(['']); }
-    sh.getRange(2, 1, 9, 1).setValues(values);
-    SpreadsheetApp.flush();
-    return { ok: true };
-  } catch (e) { return { ok: false, message: e.message }; }
-}
-
-function queryByClass(className) {
-  if (!className) return { rows: [] };
-  const sh = getSheet_(SHEET.學生);
-  const last = sh.getLastRow();
-  if (last < 2) return { rows: [] };
-
-  const allData = sh.getRange(1, 1, last, sh.getLastColumn()).getValues();
-  const rows = [];
-  let globalRegCount = 0;
-  let globalGroupSet = new Set();
-
-  for (let i = 1; i < allData.length; i++) {
-    const isReg = (allData[i][COL.E - 1] == 1 || allData[i][COL.E - 1] == '1');
-    const groupName = allData[i][COL.F - 1];
-    
-    if (isReg) {
-        globalRegCount++;
-        if (groupName) globalGroupSet.add(groupName);
-    }
-
-    if (('' + allData[i][COL.A - 1]).trim() === ('' + className).trim()) {
-      rows.push({
-        rowIndex: i + 1,
-        A: allData[i][COL.A - 1], B: allData[i][COL.B - 1], C: allData[i][COL.C - 1], 
-        D: allData[i][3], E: allData[i][COL.E - 1], F: allData[i][COL.F - 1]
-      });
-    }
-  }
-  return { rows, globalRegCount, globalGroupCount: globalGroupSet.size };
-}
-
-function saveGroupSignup(payload) {
-  try {
-    if (!Array.isArray(payload) || payload.length === 0) return { ok: true };
-    const sh = getSheet_(SHEET.學生);
-    payload.forEach(item => {
-      const r = Number(item.rowIndex);
-      if (r >= 2) {
-        sh.getRange(r, COL.E).setValue(item.E);
-        sh.getRange(r, COL.F).setValue(item.F || '');
-      }
-    });
-    SpreadsheetApp.flush(); 
-    return { ok: true };
-  } catch (err) { return { ok: false, message: err.message }; }
-}
-
-function saveCrossClassTeam(payload) {
-  try {
-    const sh = getSheet_(SHEET.學生);
-    const data = sh.getDataRange().getValues();
-    let maxCrossId = 0;
-    for (let i = 1; i < data.length; i++) {
-        const groupName = data[i][COL.F - 1] || '';
-        const match = String(groupName).match(/^跨班(\d+)$/);
-        if (match) {
-            const num = parseInt(match[1], 10);
-            if (num > maxCrossId) maxCrossId = num;
-        }
-    }
-    const nextCrossId = `跨班${maxCrossId + 1}`;
-    payload.forEach(rowIndex => {
-        const r = Number(rowIndex);
-        if (r >= 2) {
-            sh.getRange(r, COL.E).setValue(1);
-            sh.getRange(r, COL.F).setValue(nextCrossId);
-        }
-    });
-    SpreadsheetApp.flush(); 
-    return { ok: true, newTeam: nextCrossId };
-  } catch (err) { return { ok: false, message: err.message }; }
-}
-
-function getSignedList() {
-  const shStu = getSheet_(SHEET.學生);
-  const stuData = shStu.getRange(1, 1, shStu.getLastRow() || 1, 2).getValues();
-  const stuRowMap = {}; 
-  for(let i=1; i<stuData.length; i++){
-    const cls = String(stuData[i][0]).trim();
-    const seat = String(stuData[i][1]).trim();
-    if(cls && seat) stuRowMap[cls + '_' + seat] = i + 1; 
-  }
-
-  const shList = getSheet_(SHEET.參加名單);
-  const lastRow = shList.getLastRow();
-  if (lastRow < 2) return { rows: [] };
   
-  const data = shList.getRange(1, 1, lastRow, 6).getDisplayValues();
-  const rows = [];
+  .wrap { max-width: 800px; margin: 20px auto; padding: 0 16px; }
+
+  .header-title {
+    font-size: 32px; font-weight: 900; text-align: center; margin-bottom: 20px;
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #fff;
+    padding: 20px; border-radius: 16px; box-shadow: var(--shadow-md);
+    letter-spacing: 2px;
+  }
+
+  .version-text {
+    font-size: 16px;
+    font-weight: normal;
+    opacity: 0.8;
+    margin-left: 8px;
+    letter-spacing: normal;
+  }
+
+  .toast {
+    position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
+    color: #fff; padding: 14px 28px; border-radius: 999px; box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
+  }
+  .toast.show { display: block; animation: popDown 0.3s ease forwards; }
+  @keyframes popDown { from { top: -20px; opacity: 0; } to { top: 20px; opacity: 1; } }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+  .toast.info { background: var(--info); }
+
+  #loader {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.85); 
+    z-index: 9998; 
+    display: none; justify-content: center; align-items: center; flex-direction: column;
+  }
+  .spinner {
+    width: 50px; height: 50px; border: 5px solid var(--primary-light);
+    border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card {
+    background: var(--card-bg); border-radius: 16px;
+    padding: 20px; box-shadow: var(--shadow-md); margin-bottom: 20px;
+  }
+
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between;}
+  .controls-left { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  select.main-select { 
+    padding: 12px 16px; border-radius: 12px; border: 2px solid #cbd5e1; 
+    font-size: 16px; min-width: 140px; font-weight: bold; outline: none; background: white;
+  }
+  select.main-select:focus { border-color: var(--primary); }
   
-  for (let i = 1; i < data.length; i++) {
-    const cls = String(data[i][0]).trim();
-    const seat = String(data[i][1]).trim();
-    
-    if (!cls || cls === '#N/A' || cls === '班級') continue; 
-    
-    const rIdx = stuRowMap[cls + '_' + seat] || -1;
-    
-    rows.push({
-      rowIndex: rIdx, 
-      className: cls, 
-      seatNum: seat, 
-      name: String(data[i][2]).trim(),
-      studentId: String(data[i][3]).trim(), 
-      group: String(data[i][4]).trim(),       
-      officialGroup: String(data[i][5]).trim() 
-    });
+  .btn { 
+    padding: 12px 20px; border: none; border-radius: 12px; color: #fff; 
+    font-size: 16px; cursor: pointer; font-weight: 800; transition: all 0.2s;
+    display: inline-flex; align-items: center; justify-content: center;
   }
-  return { rows };
-}
+  .btn:active { transform: scale(0.95); }
+  .btn.blue { background: var(--primary); }
+  .btn.green { background: var(--success); }
+  .btn.red { background: var(--danger); }
+  .btn.yellow { background: var(--warning); color: #fff; }
+  .btn.pink { background: #ec4899; color: #fff; }
+  .btn.pink:hover { background: #db2777; }
+  .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
+  .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
-function cancelGroups() {
-  try {
-    const shList = getSheet_(SHEET.參加名單);
-    const maxRows = shList.getMaxRows();
-    if (maxRows >= 2) {
-      shList.getRange(2, 6, maxRows - 1, 1).clearContent();
-    }
-    SpreadsheetApp.flush();
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, message: e.message };
+  @media (max-width: 600px) {
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .controls-left { display: contents; }
+    select.main-select { grid-column: 1 / -1; width: 100%; }
+    .controls .btn { width: 100%; padding: 12px 8px; font-size: 15px; }
   }
-}
 
-function confirmGroups() {
-  try {
-    const shList = getSheet_(SHEET.參加名單);
-    const lastRow = shList.getLastRow();
-    if (lastRow < 2) return { ok: true, message: '無資料可分組', count: 0 };
-
-    const maxRows = shList.getMaxRows();
-    if (maxRows >= 2) {
-      shList.getRange(2, 6, maxRows - 1, 1).clearContent();
-    }
-    SpreadsheetApp.flush(); 
-
-    const data = shList.getRange(2, 1, lastRow - 1, 5).getValues(); 
-    let groupCounter = 1;
-    const groupMap = {};
-    const fValues = [];
-
-    for (let i = 0; i < data.length; i++) {
-      const cls = String(data[i][0]).trim();
-      const gName = String(data[i][4]).trim(); 
-      
-      if(!cls || cls === '#N/A') {
-         fValues.push(['']);
-         continue;
-      }
-      
-      let officialGroup = '';
-      if (gName) {
-        if (!groupMap[gName]) {
-          groupMap[gName] = `第${groupCounter}組`;
-          groupCounter++;
-        }
-        officialGroup = groupMap[gName];
-      }
-      fValues.push([officialGroup]);
-    }
-
-    if (fValues.length > 0) {
-      shList.getRange(2, 6, fValues.length, 1).setValues(fValues);
-    }
-
-    SpreadsheetApp.flush(); 
-    return { ok: true, count: groupCounter - 1 };
-  } catch (e) {
-    return { ok: false, message: e.message };
-  }
-}
-
-function resetStudentsParticipationToZero() {
-  try {
-    const sh = getSheet_(SHEET.學生);
-    const lastRow = sh.getLastRow();
-    if (lastRow >= 2) {
-      const numRows = lastRow - 1;
-      sh.getRange(2, COL.E, numRows, 1).setValues(Array.from({ length: numRows }, () => [0]));
-      sh.getRange(2, COL.F, numRows, 1).clearContent(); 
-    }
-    
-    const shList = getSheet_(SHEET.參加名單);
-    if (shList.getMaxRows() >= 2) {
-        shList.getRange(2, 6, shList.getMaxRows() - 1, 1).clearContent();
-    }
-    
-    SpreadsheetApp.flush();
-    return { ok: true };
-  } catch (err) { return { ok: false, message: err.message }; }
-}
-
-function applyValuesAndFormats_(srcRange, dstRange) {
-  const displayValues = srcRange.getDisplayValues();
-  const textFormats = displayValues.map(row => row.map(() => '@'));
-  dstRange.setNumberFormats(textFormats);
-  dstRange.setValues(displayValues);
+  .notice-wrapper { display: flow-root; }
   
-  dstRange.setFontFamilies(srcRange.getFontFamilies());
-  dstRange.setFontSizes(srcRange.getFontSizes());
-  dstRange.setFontWeights(srcRange.getFontWeights());
-  dstRange.setFontStyles(srcRange.getFontStyles());
-  dstRange.setFontColors(srcRange.getFontColors());
-  dstRange.setBackgrounds(srcRange.getBackgrounds());
-  dstRange.setHorizontalAlignments(srcRange.getHorizontalAlignments());
-  dstRange.setVerticalAlignments(srcRange.getVerticalAlignments());
-  dstRange.setWraps(srcRange.getWraps());
-
-  const merged = srcRange.getMergedRanges();
-  merged.forEach(mr => {
-    const r0 = mr.getRow() - srcRange.getRow() + dstRange.getRow();
-    const c0 = mr.getColumn() - srcRange.getColumn() + dstRange.getColumn();
-    dstRange.getSheet().getRange(r0, c0, mr.getNumRows(), mr.getNumColumns()).merge();
-  });
-}
-
-function insertStampImage(sheet, endRow, rightCol) {
-  try {
-    const blob = DriveApp.getFileById(STAMP_FILE_ID).getBlob();
-    if (!blob) return;
-    
-    let anchorCol = rightCol > 1 ? rightCol - 1 : rightCol;
-    let anchorRow = endRow + 1; 
-    
-    const img = sheet.insertImage(blob, anchorCol, anchorRow);
-    img.setWidth(140).setHeight(115); 
-    
-    if (img.setOffsetX) img.setOffsetX(50);
-    if (img.setOffsetY) img.setOffsetY(5);
-  } catch(e) {
-    console.log("無法插入圖片: " + e.message);
+  .notice-img { 
+    float: right; 
+    max-width: 250px; 
+    width: 40%; 
+    margin: 5px 0 15px 20px; 
+    border-radius: 10px; 
+    box-shadow: var(--shadow-md); 
+    border: 3px solid #a7f3d0; 
+    object-fit: cover; 
+    background: #fff; 
   }
-}
+  
+  .notice-img.canva-frame {
+    border: none;
+    background: #0e1318; 
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    min-height: 450px; 
+    height: auto;
+    width: 100%;
+    max-width: 320px;
+    border-radius: 12px;
+  }
 
-function generateOfficeLeave() {
-  try {
-    SpreadsheetApp.flush(); 
-    const sh = getSheet_(SHEET.學務處公假單);
-    const maxRow = sh.getLastRow();
-    const maxCol = 7; 
-
-    if (maxRow < 3) return { ok: false, message: '學務處公假單尚無資料。' };
-
-    const values = sh.getRange(1, 1, maxRow, maxCol).getDisplayValues();
-    let realLastRow = 3; 
-    for (let i = 3; i < values.length; i++) { 
-      const cellA = String(values[i][0]).trim();
-      if (cellA !== '' && cellA !== '#N/A') {
-        realLastRow = i + 1;
-      } else {
-        break; 
-      }
+  @media (max-width: 768px) {
+    .notice-img { max-width: 140px; width: 45%; margin: 5px 0 5px 12px; }
+    .notice-img.canva-frame {
+      float: none;
+      width: 100%;
+      max-width: 100%;
+      margin: 15px 0;
+      min-height: 400px;
     }
+  }
 
-    if (realLastRow < 4) throw new Error("學務處公假單沒有實際的學生資料。");
+  .sticky-stats {
+    position: sticky; top: 10px; z-index: 100;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+    border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 16px; margin-bottom: 20px; border: 2px solid var(--primary);
+    display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .stats-badges { display: flex; gap: 12px; flex-wrap: wrap; }
+  .stat-badge { padding: 8px 16px; border-radius: 999px; font-weight: 900; font-size: 16px; display: flex; align-items: center; gap: 6px; }
+  .stat-badge.main { background: var(--success-light); color: #166534; border: 1px solid #86efac; }
+  .stat-badge.wait { background: var(--warning-light); color: #92400e; border: 1px solid #fcd34d; }
+  .stat-count { font-size: 18px; }
 
-    const basic = getSheet_(SHEET.基本資料);
-    const activityName = basic.getRange('B4').getDisplayValue() || '活動';
-    const filename = activityName + '學務處公假單';
+  .stu-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .stu-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: var(--card-bg); border-radius: 12px;
+    border: 2px solid #e2e8f0; transition: all 0.2s;
+  }
+  .stu-card.status-main { border-color: var(--success); background: #f0fdf4; box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15); }
+  .stu-card.status-wait { border-color: var(--warning); background: #fffbeb; box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15); }
+  .stu-card.status-cross { background: #f8fafc; border-color: #cbd5e1; opacity: 0.8; }
+  
+  .stu-info { display: flex; flex-direction: column; gap: 2px; }
+  .stu-meta { font-size: 13px; color: var(--text-muted); font-weight: bold; }
+  .stu-name { font-size: 20px; font-weight: 900; color: var(--text-main); }
+  
+  .row-select {
+    padding: 10px 14px; border-radius: 10px; font-size: 16px; font-weight: 900;
+    border: 2px solid #cbd5e1; cursor: pointer; outline: none; appearance: none;
+    text-align: center; min-width: 110px; background: white; transition: 0.2s;
+  }
+  .row-select.sel-main { background: var(--success); color: white; border-color: var(--success); }
+  .row-select.sel-wait { background: var(--warning); color: white; border-color: var(--warning); }
+  .row-select:focus { transform: scale(1.05); }
 
-    const tmpSs = SpreadsheetApp.create(filename);
-    const tmpId = tmpSs.getId();
-    const tmpSh = tmpSs.getSheets()[0];
-    tmpSh.setName('學務處公假單');
+  .vibrant-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .vibrant-table th { background: var(--primary); color: white; padding: 10px 6px; text-align: left; font-size: 15px; white-space: nowrap; }
+  .vibrant-table td { padding: 10px 6px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: bold; vertical-align: middle; white-space: nowrap; }
+  .vibrant-table tr:hover td { background: #f8fafc; }
+  .vibrant-table th:first-child { border-top-left-radius: 12px; }
+  .vibrant-table th:last-child { border-top-right-radius: 12px; }
+  
+  .tag { border-radius: 8px; font-size: 13px; font-weight: 900; padding: 4px 8px; color: white; letter-spacing: 1px; display:inline-block;}
+  .tag.main { background: var(--success); }
+  .tag.wait { background: var(--warning); }
+  .tag.primary { background: var(--primary); }
+  .tag.gray { background: #e2e8f0; color: transparent; } 
+  
+  .tag.group-color-0 { background: #8b5cf6; } 
+  .tag.group-color-1 { background: #ec4899; } 
+  .tag.group-color-2 { background: #3b82f6; } 
+  .tag.group-color-3 { background: #f97316; } 
+  .tag.group-color-4 { background: #14b8a6; } 
+  .tag.group-color-5 { background: #eab308; } 
+  .tag.group-color-6 { background: #ef4444; } 
+  .tag.group-color-7 { background: #06b6d4; } 
+  .tag.group-color-8 { background: #10b981; } 
+  .tag.group-color-9 { background: #6366f1; } 
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    display: none; justify-content: center; align-items: flex-start;
+    z-index: 1800; overflow-y: auto; padding: 40px 20px;
+  }
+  .modal { 
+    margin: auto; background: #fff; padding: 30px; border-radius: 20px; width: 100%; 
+    max-width: 400px; text-align: center; box-shadow: var(--shadow-lg); position: relative;
+  }
+  .modal-large { max-width: 600px; }
+  .modal input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center; }
+
+  #confirmModal, #adminPwdModal {
+    z-index: 2000;
+  }
+
+  .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
+  .btn-adv { padding: 16px 12px; border-radius: 16px; color: white; font-weight: bold; font-size: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;}
+  .btn-adv:active { transform: scale(0.95); }
+  .btn-adv-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+  .btn-adv-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+  .btn-adv-green { background: linear-gradient(135deg, #10b981, #047857); }
+  .btn-adv-teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+  .btn-adv-purple { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
+  .btn-adv-orange { background: linear-gradient(135deg, #f59e0b, #b45309); }
+  .btn-adv-slate { background: linear-gradient(135deg, #475569, #1e293b); }
+  .btn-adv-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
+  .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
+  
+  .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
+  .settings-form label { font-weight: bold; color: var(--text-main); font-size: 14px; margin-bottom: -5px;}
+  .settings-form input, .settings-form select { width: 100%; text-align: left; margin: 0; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; background:white; }
+  .settings-form input:focus, .settings-form select:focus, .settings-form textarea:focus { border-color: var(--primary); outline:none;}
+  .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
+  .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <div style="margin-top: 15px; font-weight: bold; color: var(--primary); font-size: 18px;">系統處理中...</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<div class="wrap">
+  
+  <div class="header-title" id="pageTitle">
+    報名系統 <span class="version-text">v2.9.27</span>
+  </div>
+
+  <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
+    <h3 style="margin-top:0; color:var(--success);">📌 報名說明</h3>
+    <div id="noticeContent" class="notice-wrapper" style="font-weight: bold; line-height: 1.6;"></div>
+  </div>
+
+  <div class="card">
+    <div class="controls">
+      <div class="controls-left">
+        <select id="classSelect" class="main-select" onchange="queryStudents()">
+          <option value="">-- 請選擇班級 --</option>
+        </select>
+        <button class="btn yellow" onclick="fetchSignedList()">📄 已報名名單</button>
+      </div>
+      <button class="btn outline" onclick="showAdminModal()">⚙️ 進階設定</button>
+    </div>
     
-    const srcRange = sh.getRange(1, 1, realLastRow, maxCol);
-    const dstRange = tmpSh.getRange(1, 1, realLastRow, maxCol);
-    applyValuesAndFormats_(srcRange, dstRange);
+    <div class="sticky-stats" id="statsBar">
+      <div class="stats-badges" id="statsBadgesContainer">
+        <!-- 動態產生 -->
+      </div>
+      <button class="btn green" style="font-size: 18px; padding: 12px 24px;" onclick="submitGroup()">🚀 送出儲存</button>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid var(--primary); padding-bottom:10px; margin-top: 20px;">
+      <h3 id="listTitle" style="margin:0; color:var(--primary); font-size: 22px;">名單列表</h3>
+    </div>
     
-    const stampRow = realLastRow + 1;
-    const keepRows = stampRow + 4; 
-    if (tmpSh.getMaxRows() > keepRows) tmpSh.deleteRows(keepRows + 1, tmpSh.getMaxRows() - keepRows);
-    if (tmpSh.getMaxColumns() > maxCol) tmpSh.deleteColumns(maxCol + 1, tmpSh.getMaxColumns() - maxCol);
+    <div id="studentListContainer" class="stu-list">
+      <div style="text-align:center; padding: 40px 20px; color: var(--text-muted); font-weight: bold; font-size: 18px; background: #f8fafc; border-radius: 16px; border: 2px dashed #cbd5e1;">
+        👆 請先由上方選擇班級，或查看已報名名單
+      </div>
+    </div>
+  </div>
 
-    // ★ 修正：大幅加寬欄位，撐滿 A4 頁面寬度
-    tmpSh.setColumnWidth(1, 70);  // 班級
-    tmpSh.setColumnWidth(2, 70);  // 座號
-    tmpSh.setColumnWidth(3, 90);  // 姓名
-    tmpSh.setColumnWidth(4, 100); // 學號
-    tmpSh.setColumnWidth(5, 140); // 節數
-    tmpSh.setColumnWidth(6, 180); // 請假時間
-    tmpSh.setColumnWidth(7, 150); // 請假事由
+</div>
 
-    const dataRange = tmpSh.getRange(3, 1, realLastRow - 2, maxCol);
-    dataRange.setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-    dataRange.setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
-    dataRange.setFontColor('#000000').setBackground('#ffffff');
-    tmpSh.getRange(2, 1, 1, maxCol).setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
+<!-- ================== Modals ================== -->
 
-    tmpSh.setRowHeight(1, 40); 
-    tmpSh.setRowHeight(2, 30); 
-    if (realLastRow >= 3) {
-      tmpSh.autoResizeRows(3, realLastRow - 2);
-    }
-    SpreadsheetApp.flush();
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle" style="margin-top:0; color: var(--primary); font-size: 24px;">確認</h3>
+    <p id="confirmMessage" style="font-size: 17px; font-weight: bold; color: var(--text-main); white-space: pre-wrap; line-height: 1.5; margin: 20px 0;"></p>
+    <div style="display: flex; gap: 12px; margin-top: 25px;">
+      <button class="btn outline-gray" style="flex:1; font-size: 18px;" onclick="closeConfirmModal()">取消</button>
+      <button class="btn" id="confirmBtn" style="flex:1; font-size: 18px;" onclick="executeConfirm()">確定</button>
+    </div>
+  </div>
+</div>
 
-    const pdfFile = DriveApp.getFileById(tmpId).makeCopy(filename + '_PDF');
-    const pdfId = pdfFile.getId();
-    const pdfSs = SpreadsheetApp.openById(pdfId);
-    const pdfSh = pdfSs.getSheets()[0];
-    
-    for (let r = 3; r <= realLastRow; r++) {
-        pdfSh.setRowHeight(r, 28); 
-    }
-    pdfSh.setRowHeight(2, 28); 
-    
-    pdfSh.setRowHeight(stampRow, 120); 
-    pdfSh.getRange(stampRow, 1, 1, maxCol).setBorder(true, false, false, false, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-    
-    insertStampImage(pdfSh, realLastRow, maxCol);
-    SpreadsheetApp.flush();
-    
-    try {
-      DriveApp.getFileById(tmpId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      DriveApp.getFileById(pdfId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (shareErr) {
-      throw new Error("分享權限設定失敗，請確認已執行 step1_FixPermissions 重新授權。");
-    }
+<div class="modal-overlay" id="adminPwdModal">
+  <div class="modal">
+    <h3 style="margin-top:0; color: var(--danger);">管理員驗證</h3>
+    <input type="password" id="adminPwd" placeholder="請輸入密碼" maxlength="6" inputmode="numeric">
+    <div style="display: flex; gap: 10px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="closeAllModals()">取消</button>
+      <button class="btn red" style="flex:1;" onclick="verifyAdmin()">確定</button>
+    </div>
+  </div>
+</div>
 
-    const pdfUrl = `https://docs.google.com/spreadsheets/d/${pdfId}/export?exportFormat=pdf&format=pdf&gid=${pdfSh.getSheetId()}&size=A4&portrait=true&scale=2&fitw=true&pagebreaks=true&sheetnames=false&printtitle=false&pagenum=UNDEFINED&gridlines=false&printnotes=false&fzr=true&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25`;
-    const excelUrl = `https://docs.google.com/spreadsheets/d/${tmpId}/export?format=xlsx`;
+<div class="modal-overlay" id="advancedMenuModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--text-main);">⚙️ 進階設定</h3>
+    <div class="adv-grid">
+      <button class="btn-adv btn-adv-red" onclick="triggerResetDefaults()"><span style="font-size:28px;">🗑️</span>1. 回復預設值</button>
+      <button class="btn-adv btn-adv-orange" onclick="openNoticeSettings()"><span style="font-size:28px;">📢</span>2. 注意事項設定</button>
+      <button class="btn-adv btn-adv-blue" onclick="openBasicSettings()"><span style="font-size:28px;">📝</span>3. 基本設定</button>
+      <button class="btn-adv btn-adv-green" onclick="generateOfficeLeave()"><span style="font-size:28px;">🏫</span>4. 學務處公假單</button>
+      <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>5. 班級公假單</button>
+      <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>6. 雲端資料夾</button>
+      <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>7. 跨班組隊</button>
+      <button class="btn-adv btn-adv-pink" onclick="confirmGroupAssignment()"><span style="font-size:28px;">🏷️</span>8. 確定分組</button>
+      <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>9. 分組資料</button>
+      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>10. 預備功能</button>
+    </div>
+    <button class="btn outline-gray" style="margin-top:25px; width: 100%; padding: 12px; font-size: 18px;" onclick="closeAllModals()">關閉選單</button>
+  </div>
+</div>
 
-    return { ok: true, pdfUrl: pdfUrl, excelUrl: excelUrl, tmpId: [tmpId, pdfId] };
-  } catch (err) { return { ok: false, message: err.message }; }
-}
+<div class="modal-overlay" id="basicSettingsModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--primary);">📝 基本資料設定</h3>
+    <div class="settings-form" id="settingsFormContainer"></div>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('basicSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn green" style="flex:1;" onclick="saveBasicSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
 
-function generateMergedClassLeavePdf() {
-  try {
-    SpreadsheetApp.flush();
-    const mainSh = getSheet_(SHEET.班級公假單);
-    const lastRow = mainSh.getLastRow();
-    
-    if (lastRow < 5) return { ok: false, message: '班級公假單尚無資料。' };
+<div class="modal-overlay" id="noticeSettingsModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--warning);">📢 注意事項設定 (最多9項)</h3>
+    <div class="settings-form" id="noticeFormContainer"></div>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('noticeSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn yellow" style="flex:1;" onclick="saveNoticeSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
 
-    const dataValues = mainSh.getRange(5, 1, lastRow - 4, 6).getDisplayValues(); 
-    const classMap = {};
-    dataValues.forEach(row => {
-      const cls = String(row[0]).trim();
-      const name = String(row[2]).trim();
-      if (!cls || cls === '#N/A' || cls === '' || name === '') return;
-      if (!classMap[cls]) classMap[cls] = [];
-      classMap[cls].push(row);
-    });
+<div class="modal-overlay" id="crossClassModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: var(--primary);">🌍 跨班組隊</h3>
+    <p style="color: var(--text-muted); font-weight: bold;">請選擇 3 位學生組成跨班隊伍：</p>
+    <div id="crossClassMembers" style="margin-top: 20px;">
+      <div class="cross-member-row">
+        <select id="ccClass1" onchange="fetchCrossStudents(1)"></select>
+        <select id="ccStudent1"><option value="">-- 先選班級 --</option></select>
+      </div>
+      <div class="cross-member-row">
+        <select id="ccClass2" onchange="fetchCrossStudents(2)"></select>
+        <select id="ccStudent2"><option value="">-- 先選班級 --</option></select>
+      </div>
+      <div class="cross-member-row">
+        <select id="ccClass3" onchange="fetchCrossStudents(3)"></select>
+        <select id="ccStudent3"><option value="">-- 先選班級 --</option></select>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 25px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('crossClassModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn green" style="flex:1;" onclick="triggerSubmitCrossClassTeam()">送出跨班隊伍</button>
+    </div>
+  </div>
+</div>
 
-    let classNames = Object.keys(classMap);
-    if (classNames.length === 0) return { ok: false, message: '找不到任何班級資料。' };
-    classNames.sort((a, b) => String(a).localeCompare(String(b), 'zh-Hant', { numeric: true }));
+<script>
+  // ==========================================
+  // ⚠️ API 網址維持您提供的部署
+  // ==========================================
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
+  
+  let sysConfig = {};
+  let currentClassStudents = []; 
+  let sysClasses = []; 
+  
+  let confirmCallback = null;
+  let adminNextAction = null; 
+  let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
-    const basic = getSheet_(SHEET.基本資料);
-    const activityName = basic.getRange('B4').getDisplayValue() || '活動';
-    const filename = activityName + '班級公假名單_合併';
+  // ================== UI 輔助 ==================
+  function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
+  function showToast(msg, type='success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.className = 'toast ' + type + ' show';
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+  function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    adminNextAction = null;
+  }
+  function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green') {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
+    document.getElementById('confirmMessage').textContent = message;
+    const btn = document.getElementById('confirmBtn');
+    btn.textContent = btnText;
+    btn.className = `btn ${btnColor}`;
+    confirmCallback = callback;
+    document.getElementById('confirmModal').style.display = 'flex';
+  }
+  function closeConfirmModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+    confirmCallback = null;
+  }
+  function executeConfirm() {
+    if (confirmCallback) confirmCallback();
+    closeConfirmModal();
+  }
 
-    const tmpSs = SpreadsheetApp.create(filename);
-    const tmpId = tmpSs.getId();
-    const firstTmpSh = tmpSs.getSheets()[0];
+  function triggerDownload(url) {
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  }
 
-    const srcHeader = mainSh.getRange(1, 1, 4, 6);
-
-    classNames.forEach((cls, idx) => {
-      const sh = (idx === 0) ? firstTmpSh : tmpSs.insertSheet(cls);
-      sh.setName(cls);
-
-      // ★ 修正：大幅加寬欄位，撐滿 A4 頁面寬度
-      sh.setColumnWidth(1, 80);  // 班級
-      sh.setColumnWidth(2, 80);  // 座號
-      sh.setColumnWidth(3, 100); // 姓名
-      sh.setColumnWidth(4, 180); // 請假時間/節數
-      sh.setColumnWidth(5, 180); // 請假事由
-      sh.setColumnWidth(6, 150); // 參加地點
-      
-      for (let r = 1; r <= 4; r++) sh.setRowHeight(r, mainSh.getRowHeight(r) || 30);
-
-      applyValuesAndFormats_(srcHeader, sh.getRange(1, 1, 4, 6));
-      
-      sh.getRange(4, 1, 1, 6).setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-      sh.getRange(4, 1, 1, 6).setHorizontalAlignment('center').setVerticalAlignment('middle').setFontWeight('bold');
-
-      const clsValues = classMap[cls];
-      const dataEndRow = 4 + clsValues.length;
-
-      if (clsValues.length > 0) {
-          const dataRange = sh.getRange(5, 1, clsValues.length, 6);
-          const textFormats = clsValues.map(row => row.map(() => '@'));
-          dataRange.setNumberFormats(textFormats);
-          dataRange.setValues(clsValues);
-          
-          dataRange.setBorder(true, true, true, true, true, true, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-          dataRange.setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true).setFontColor('#000000').setBackground('#ffffff');
-          
-          sh.autoResizeRows(5, clsValues.length);
-      }
-
-      const stampRow = dataEndRow + 1;
-      const keepRows = stampRow + 4;
-      if (sh.getMaxColumns() > 6) sh.deleteColumns(7, sh.getMaxColumns() - 6);
-      if (sh.getMaxRows() > keepRows) sh.deleteRows(keepRows + 1, sh.getMaxRows() - keepRows);
-    });
-
-    SpreadsheetApp.flush();
-
-    const pdfFile = DriveApp.getFileById(tmpId).makeCopy(filename + '_PDF');
-    const pdfId = pdfFile.getId();
-    const pdfSs = SpreadsheetApp.openById(pdfId);
-
-    classNames.forEach(cls => {
-      const pdfSh = pdfSs.getSheetByName(cls);
-      if(pdfSh) {
-          const clsValues = classMap[cls];
-          const dataEndRow = 4 + clsValues.length;
-          const stampRow = dataEndRow + 1;
-          
-          for (let r = 5; r <= dataEndRow; r++) pdfSh.setRowHeight(r, 28);
-          
-          pdfSh.setRowHeight(stampRow, 120);
-          pdfSh.getRange(stampRow, 1, 1, 6).setBorder(true, false, false, false, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID);
-          
-          insertStampImage(pdfSh, dataEndRow, 6);
-      }
-    });
-
-    SpreadsheetApp.flush();
-    
-    try {
-      DriveApp.getFileById(tmpId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      DriveApp.getFileById(pdfId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (shareErr) {
-      throw new Error("分享權限設定失敗，請確認已執行 step1_FixPermissions 重新授權。");
-    }
-
-    const pdfUrl = `https://docs.google.com/spreadsheets/d/${pdfId}/export?exportFormat=pdf&format=pdf&size=A4&portrait=true&scale=2&fitw=true&sheetnames=false&printtitle=false&pagenum=UNDEFINED&gridlines=false&printnotes=false&fzr=true&top_margin=0.25&bottom_margin=0.25&left_margin=0.25&right_margin=0.25`;
-    const excelUrl = `https://docs.google.com/spreadsheets/d/${tmpId}/export?format=xlsx`;
-
-    return { ok: true, count: classNames.length, pdfUrl: pdfUrl, excelUrl: excelUrl, tmpId: [tmpId, pdfId] };
-  } catch (err) { return { ok: false, message: err.message }; }
-}
-
-function generateGroupDataExcel() {
-  try {
-    const shList = getSheet_(SHEET.參加名單);
-    const lastRow = shList.getLastRow();
-    if (lastRow < 2) return { ok: false, message: '沒有分組資料可供匯出' };
-
-    const basic = getSheet_(SHEET.基本資料);
-    const activityName = basic.getRange('B4').getDisplayValue() || '活動';
-    const filename = activityName + '分組資料';
-    const docTitle = activityName + '名冊';
-
-    const data = shList.getRange(2, 1, lastRow - 1, 6).getDisplayValues();
-    
-    const groups = {};
-    data.forEach(row => {
-        const cls = String(row[0]).trim();
-        const seat = String(row[1]).trim();
-        const name = String(row[2]).trim();
-        const stId = String(row[3]).trim();
-        const officialGroup = String(row[5]).trim();
+  // ================== 初始化載入 ==================
+  window.onload = () => {
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=getInitData&t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        if(data.error) throw new Error(data.error);
         
-        if (!cls || cls === '#N/A' || !officialGroup) return;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.27</span>`;
+        document.title = `${data.title} v2.9.27`;
+        
+        sysConfig = data; 
+        sysClasses = data.classes || [];
 
-        if (!groups[officialGroup]) groups[officialGroup] = [];
-        groups[officialGroup].push({ cls, seat, name, stId, officialGroup });
-    });
+        if((data.notices && data.notices.length > 0) || data.imageUrl) {
+          document.getElementById('noticeCard').style.display = 'block';
+          let contentHtml = '';
+          
+          if(data.imageUrl) {
+             let url = data.imageUrl.trim();
+             // 判斷是否為 Canva 設計連結
+             if (url.includes('canva.com/design/')) {
+                 let baseUrl = url.split('/view')[0] + '/view?embed';
+                 contentHtml += `<iframe src="${baseUrl}" class="notice-img canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
+             } else {
+                 // 一般雲端硬碟圖片或直接圖片連結
+                 const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                 if(driveMatch && driveMatch[1]) {
+                     url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                 }
+                 contentHtml += `<img src="${url}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
+             }
+          }
+          if(data.notices) {
+             contentHtml += data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
+          }
+          document.getElementById('noticeContent').innerHTML = contentHtml;
+        }
 
-    const sortedGroupNames = Object.keys(groups).sort((a, b) => {
-        const numA = parseInt(a.replace(/\D/g, '')) || 0;
-        const numB = parseInt(b.replace(/\D/g, '')) || 0;
-        return numA - numB;
-    });
-
-    const detailData = [];
-    const summaryData = [];
-
-    sortedGroupNames.forEach(gName => {
-        const members = groups[gName];
-        const formattedGroupName = gName.replace(/第(\d+)組/, (match, p1) => `第${p1.padStart(2, '0')}組`);
-        const mergedString = formattedGroupName + ' ' + members.map(m => m.cls + m.name).join(' ');
-
-        summaryData.push([mergedString]);
-
-        members.forEach(m => {
-            detailData.push([m.name, m.stId, m.cls, m.seat, formattedGroupName, mergedString]);
+        const select = document.getElementById('classSelect');
+        sysClasses.forEach(c => {
+          let opt = document.createElement('option');
+          opt.value = c; opt.text = c + " 班";
+          select.appendChild(opt);
         });
+        
+        showLoader(false);
+      })
+      .catch(err => {
+        showLoader(false); showToast("初始化失敗: " + err.message, "error");
+      });
+  };
+
+  // ================== 查詢班級 ==================
+  function queryStudents() {
+    const cls = document.getElementById('classSelect').value;
+    if(!cls) {
+        document.getElementById('statsBar').style.display = 'none';
+        document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">👆 請先由上方選擇班級，或查看已報名名單</div>`;
+        document.getElementById('listTitle').textContent = `名單列表`;
+        return; 
+    }
+
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        if(data.error) throw new Error(data.error);
+        
+        sysConfig.globalRegCount = data.globalRegCount || 0;
+        
+        currentClassStudents = data.rows.map(stu => {
+            let status = 'none';
+            let isCross = false;
+            
+            if (stu.E == 1 || stu.E == '1') {
+                if (sysConfig.regMode === '個人') {
+                    status = 'main'; 
+                } else {
+                    if (stu.F && String(stu.F).includes('跨班')) {
+                        isCross = true;
+                        status = 'cross';
+                    } else if (stu.F && String(stu.F).includes('正取')) {
+                        status = 'main';
+                    } else if (stu.F && String(stu.F).includes('備取')) {
+                        status = 'wait';
+                    } else {
+                        status = 'main'; 
+                    }
+                }
+            }
+            return { ...stu, currentStatus: status, isCross: isCross, origStatus: status };
+        });
+
+        sysConfig.classOriginalRegCount = currentClassStudents.filter(s => s.origStatus === 'main' || s.origStatus === 'wait').length;
+
+        document.getElementById('listTitle').textContent = `${cls} 班級學生列表`;
+        renderStudentList();
+      })
+      .catch(err => {
+        showLoader(false); showToast("查詢失敗: " + err.message, "error");
+      });
+  }
+
+  function updateStats() {
+      const container = document.getElementById('statsBadgesContainer');
+      
+      if (sysConfig.regMode === '個人') {
+          const currentSelected = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+          const netChange = currentSelected - sysConfig.classOriginalRegCount;
+          const projectedGlobal = sysConfig.globalRegCount + netChange;
+          const limit = sysConfig.individualLimit;
+          const remain = Math.max(0, limit - projectedGlobal);
+          
+          container.innerHTML = `
+            <div class="stat-badge main">
+              目前報名：<span class="stat-count" style="color: ${projectedGlobal > limit ? 'red' : 'inherit'}">${projectedGlobal} / ${limit} (剩 ${remain} 人)</span>
+            </div>
+          `;
+      } else {
+          const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+          const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
+          const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
+          const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
+          
+          container.innerHTML = `
+            <div class="stat-badge main">
+              正取： <span class="stat-count" style="color: ${mainCount > limitMain ? 'red' : 'inherit'}">${mainCount} / ${limitMain}</span>
+            </div>
+            <div class="stat-badge wait">
+              備取： <span class="stat-count" style="color: ${waitCount > limitWait ? 'red' : 'inherit'}">${waitCount} / ${limitWait}</span>
+            </div>
+          `;
+      }
+      document.getElementById('statsBar').style.display = 'flex';
+  }
+
+  function handleStatusChange(rowIndex, newValue) {
+      const stu = currentClassStudents.find(s => s.rowIndex === rowIndex);
+      
+      if (sysConfig.regMode === '個人') {
+          if (newValue === 'main') {
+              const currentSelected = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+              const projectedGlobal = sysConfig.globalRegCount - sysConfig.classOriginalRegCount + currentSelected + 1;
+              if (projectedGlobal > sysConfig.individualLimit) {
+                  showToast(`超過報名上限 (${sysConfig.individualLimit}人)！`, 'error');
+                  renderStudentList(); 
+                  return;
+              }
+          }
+      } else {
+          if (newValue === 'main') {
+              const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
+              const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
+              if (mainCount >= limitMain) {
+                  showToast(`正取人數已達上限 (${limitMain}人)！`, 'error');
+                  renderStudentList(); return;
+              }
+          } else if (newValue === 'wait') {
+              const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
+              const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
+              if (waitCount >= limitWait) {
+                  showToast(`備取人數已達上限 (${limitWait}人)！`, 'error');
+                  renderStudentList(); return;
+              }
+          }
+      }
+
+      stu.currentStatus = newValue;
+      renderStudentList(); 
+  }
+
+  function renderStudentList() {
+    const container = document.getElementById('studentListContainer');
+    container.innerHTML = '';
+    if(currentClassStudents.length === 0) return;
+
+    currentClassStudents.forEach(stu => {
+      const div = document.createElement('div');
+      div.className = `stu-card status-${stu.currentStatus}`;
+
+      let rightHtml = '';
+      if (stu.isCross) {
+          rightHtml = `<span style="color:var(--text-muted); font-weight:900; font-size:16px;">🔒 ${stu.F}</span>`;
+      } else {
+          let selClass = 'row-select';
+          if(stu.currentStatus === 'main') selClass += ' sel-main';
+          if(stu.currentStatus === 'wait') selClass += ' sel-wait';
+
+          let optionsHtml = `<option value="none" ${stu.currentStatus === 'none' ? 'selected' : ''}>不參加</option>`;
+          if (sysConfig.regMode === '個人') {
+              optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>參加</option>`;
+          } else {
+              optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>正取</option>`;
+              optionsHtml += `<option value="wait" ${stu.currentStatus === 'wait' ? 'selected' : ''}>備取</option>`;
+          }
+
+          rightHtml = `<select class="${selClass}" onchange="handleStatusChange(${stu.rowIndex}, this.value)">${optionsHtml}</select>`;
+      }
+
+      div.innerHTML = `
+        <div class="stu-info">
+          <div class="stu-meta">座號：${stu.B}</div>
+          <div class="stu-name">${stu.C}</div>
+        </div>
+        <div>${rightHtml}</div>
+      `;
+      container.appendChild(div);
+    });
+    updateStats();
+  }
+
+  function submitGroup() {
+      const payload = [];
+      const cls = document.getElementById('classSelect').value;
+      if (!cls) return showToast("請先選擇班級！", "error");
+
+      currentClassStudents.forEach(stu => {
+          if (stu.isCross) return; 
+
+          if (sysConfig.regMode === '個人') {
+              if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `個人` });
+              else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
+          } else {
+              if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-正取` });
+              else if (stu.currentStatus === 'wait') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取1` });
+              else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
+          }
+      });
+
+      if (payload.length === 0) return showToast("沒有資料可以送出！", "error");
+
+      showConfirm("儲存確認", "確定要儲存目前的報名狀態嗎？\n(名單上顯示不參加者，若原先已報名將會被取消)", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+          })
+          .then(res => res.json())
+          .then(data => {
+            showLoader(false);
+            if(data.error) throw new Error(data.error);
+            showToast("🎉 班級報名已成功送出！");
+            queryStudents(); 
+          })
+          .catch(err => {
+            showLoader(false); showToast("儲存失敗: " + err.message, "error");
+          });
+      }, "確定送出", "blue");
+  }
+
+  // ================== 全校已報名清單 ==================
+  function fetchSignedList() {
+    document.getElementById('classSelect').value = '';
+
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        if(data.error) throw new Error(data.error);
+        
+        document.getElementById('statsBar').style.display = 'none'; 
+        
+        const topActionsHtml = `
+          <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
+            <button class="btn outline-gray" style="padding:10px 20px; font-size:16px;" onclick="showAdminModal(triggerCancelGroups)">❌ 取消分組</button>
+            <button class="btn blue" style="padding:10px 20px; font-size:16px;" onclick="showAdminModal(confirmGroupAssignment)">🏷️ 確定分組</button>
+          </div>
+        `;
+
+        let statsHtml = '';
+        if (sysConfig.regMode === '個人') {
+            const currentCount = data.rows.length;
+            const limit = sysConfig.individualLimit;
+            const remain = Math.max(0, limit - currentCount);
+            statsHtml = `
+              <div style="background:#e0f2fe; color:#0369a1; padding:16px; border-radius:12px; margin-bottom:15px; font-weight:bold; font-size:16px; border:2px solid #bae6fd; box-shadow:0 4px 6px rgba(0,0,0,0.05); text-align:center;">
+                📊 報名統計：目前共 <span style="color:#0284c7; font-size:22px;">${currentCount}</span> 人 
+                / 上限 <span style="color:#e11d48; font-size:22px;">${limit}</span> 人 
+                (剩餘 <span style="color:#059669; font-size:22px;">${remain}</span> 人)
+              </div>
+            `;
+        } else {
+            const groupSet = new Set();
+            data.rows.forEach(r => { if(r.group) groupSet.add(r.group); });
+            const currentGroups = groupSet.size;
+            const limitGroups = sysConfig.groupLimit || 20;
+            const remainGroups = Math.max(0, limitGroups - currentGroups);
+            statsHtml = `
+              <div style="background:#e0f2fe; color:#0369a1; padding:16px; border-radius:12px; margin-bottom:15px; font-weight:bold; font-size:16px; border:2px solid #bae6fd; box-shadow:0 4px 6px rgba(0,0,0,0.05); text-align:center;">
+                📊 報名統計：目前共 <span style="color:#0284c7; font-size:22px;">${currentGroups}</span> 組 
+                / 上限 <span style="color:#e11d48; font-size:22px;">${limitGroups}</span> 組 
+                (剩餘 <span style="color:#059669; font-size:22px;">${remainGroups}</span> 組)
+              </div>
+            `;
+        }
+
+        if(!data.rows || data.rows.length === 0) {
+            document.getElementById('studentListContainer').innerHTML = topActionsHtml + statsHtml + `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold; font-size:18px;">目前全校無人報名</div>`;
+            document.getElementById('listTitle').textContent = "全校已報名名單";
+            return;
+        }
+
+        data.rows.sort((a, b) => {
+            const offA = String(a.officialGroup || '').trim();
+            const offB = String(b.officialGroup || '').trim();
+            const groupA = String(a.group || '');
+            const groupB = String(b.group || '');
+            const isCrossA = groupA.includes('跨班');
+            const isCrossB = groupB.includes('跨班');
+
+            if (offA && !offB) return -1;
+            if (!offA && offB) return 1;
+            if (offA && offB) {
+                const numA = parseInt(offA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(offB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+
+            if (isCrossA && !isCrossB) return 1;
+            if (!isCrossA && isCrossB) return -1;
+            if (isCrossA && isCrossB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+                const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+                if (classCmp !== 0) return classCmp;
+                return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
+            }
+
+            const classCmp = String(a.className).localeCompare(String(b.className), 'zh-Hant', {numeric: true});
+            if (classCmp !== 0) return classCmp;
+
+            const isMainA = groupA.includes('正取') || groupA.includes('個人');
+            const isMainB = groupB.includes('正取') || groupB.includes('個人');
+            if (isMainA && !isMainB) return -1;
+            if (!isMainA && isMainB) return 1;
+
+            if (!isMainA && !isMainB) {
+                const numA = parseInt(groupA.replace(/\D/g, '')) || 0;
+                const numB = parseInt(groupB.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+            }
+
+            return parseInt(a.seatNum || 0) - parseInt(b.seatNum || 0);
+        });
+
+        const thead = `<tr><th>班級</th><th>座號</th><th>姓名</th><th>學號</th><th>組別</th><th>正式組別</th><th style="text-align:center;">操作</th></tr>`;
+        const tbody = data.rows.map(r => {
+            let tagClass = 'gray';
+            if (r.group.includes('正取') || r.group.includes('個人')) {
+                tagClass = 'main';
+            } else if (r.group.includes('備取')) {
+                tagClass = 'wait';
+            } else if (r.group.includes('跨班')) {
+                tagClass = 'primary';
+            }
+            
+            let offColorClass = 'gray'; 
+            let officialText = '-';
+            let styleStr = 'background:transparent; color:transparent;';
+            
+            if (r.officialGroup) {
+                officialText = r.officialGroup;
+                styleStr = 'font-size:15px;';
+                const match = r.officialGroup.match(/\d+/);
+                if (match) {
+                    const num = parseInt(match[0], 10);
+                    offColorClass = 'group-color-' + (num % 10);
+                } else {
+                    offColorClass = 'success'; 
+                }
+            }
+
+            const officialHtml = `<span class="tag ${offColorClass}" style="${styleStr}">${officialText}</span>`;
+
+            return `
+            <tr id="signed-row-${r.rowIndex}">
+                <td id="cell-className-${r.rowIndex}">${r.className}</td>
+                <td id="cell-seat-${r.rowIndex}">${r.seatNum}</td>
+                <td id="cell-name-${r.rowIndex}">${r.name}</td>
+                <td id="cell-stid-${r.rowIndex}">${r.studentId}</td>
+                <td><span class="tag ${tagClass}">${r.group}</span></td>
+                <td>${officialHtml}</td>
+                <td id="cell-action-${r.rowIndex}" style="text-align:center; white-space:nowrap; padding: 10px 6px;">
+                   <button class="btn yellow" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="handleEditSignedBtn(${r.rowIndex}, '${r.className}', '${r.group}')">修改</button>
+                   <button class="btn outline" style="padding:6px 10px; font-size:14px; border-radius:8px; margin-left: 2px;" onclick="handleDeleteSignedBtn(${r.rowIndex}, '${r.name}')">刪除</button>
+                </td>
+            </tr>`;
+        }).join('');
+        
+        document.getElementById('listTitle').textContent = "全校已報名名單";
+        document.getElementById('studentListContainer').innerHTML = `
+          ${topActionsHtml}
+          ${statsHtml}
+          <div style="overflow-x:auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); background:white;">
+            <table class="vibrant-table">
+              <thead>${thead}</thead>
+              <tbody>${tbody}</tbody>
+            </table>
+          </div>
+        `;
+      })
+      .catch(err => {
+        showLoader(false); showToast("取得名單失敗: " + err.message, "error");
+      });
+  }
+
+  // ================== 管理員、修改與刪除功能 ==================
+  function showAdminModal(nextAction = null) {
+    adminNextAction = nextAction;
+    const pwdInput = document.getElementById('adminPwd');
+    pwdInput.value = '';
+    document.getElementById('adminPwdModal').style.display = 'flex';
+    setTimeout(() => { pwdInput.focus(); }, 50);
+  }
+
+  function verifyAdmin() {
+    const pwd = document.getElementById('adminPwd').value;
+    if(pwd !== '000000') return showToast("密碼錯誤", "error");
+    
+    document.getElementById('adminPwdModal').style.display = 'none';
+    
+    if (typeof adminNextAction === 'function') {
+        adminNextAction(); adminNextAction = null;
+    } else {
+        document.getElementById('advancedMenuModal').style.display = 'flex';
+    }
+  }
+
+  function handleEditSignedBtn(rowIndex, className, group) {
+      showAdminModal(() => startEditSigned(rowIndex, className, group));
+  }
+
+  function handleDeleteSignedBtn(rowIndex, name) {
+      showAdminModal(() => confirmDeleteSigned(rowIndex, name));
+  }
+
+  function confirmDeleteSigned(rowIndex, name) {
+      showConfirm("刪除確認", `確定要取消「${name}」的報名嗎？\n(為避免名單錯位，這將會同步清空目前的正式分組)`, () => {
+          showLoader(true);
+          const payload = [{rowIndex: rowIndex, E: 0, F: ''}];
+          
+          fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+          })
+          .then(res => res.json())
+          .then(data => {
+              if(data.error) throw new Error(data.error);
+              return fetch(GAS_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify({ action: 'cancelGroups' })
+              });
+          })
+          .then(res => res.json())
+          .then(data => {
+              showLoader(false);
+              if(data.error) throw new Error(data.error);
+              showToast('✅ 已刪除報名並清空正式分組！');
+              fetchSignedList();
+          })
+          .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
+      }, "確定刪除", "red");
+  }
+
+  function triggerCancelGroups() {
+      showConfirm("取消分組", "確定要取消目前所有的「正式組別」嗎？\n(將清空參加名單上的正式組別欄位)", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'cancelGroups' })
+          })
+          .then(res => res.json())
+          .then(data => {
+              showLoader(false);
+              if(data.error) throw new Error(data.error);
+              showToast('✅ 已取消所有正式分組！');
+              fetchSignedList();
+          })
+          .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
+      }, "確定取消", "red");
+  }
+
+  function startEditSigned(rowIndex, className, oldGroup) {
+      currentEditData.oldRowIndex = rowIndex;
+      currentEditData.oldGroup = oldGroup;
+
+      const tr = document.getElementById(`signed-row-${rowIndex}`);
+      if(!tr) return;
+
+      document.getElementById(`cell-action-${rowIndex}`).innerHTML = `
+        <button class="btn green" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="confirmSwapSigned(${rowIndex})">確定</button>
+        <button class="btn outline-gray" style="padding:6px 10px; font-size:14px; border-radius:8px; margin-left: 2px;" onclick="fetchSignedList()">取消</button>
+      `;
+      tr.style.background = 'var(--warning-light)';
+
+      const isCross = oldGroup.includes('跨班');
+
+      if (isCross) {
+          let classOptions = '<option value="">請選班級</option>';
+          sysClasses.forEach(c => {
+              classOptions += `<option value="${c}" ${c === className ? 'selected' : ''}>${c} 班</option>`;
+          });
+          document.getElementById(`cell-className-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="fetchEditCrossStudents(${rowIndex}, this.value)">${classOptions}</select>`;
+          document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">載入中...</option></select>`;
+          
+          fetchEditCrossStudents(rowIndex, className, rowIndex);
+      } else {
+          showLoader(true);
+          fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
+            .then(res => res.json())
+            .then(data => {
+                showLoader(false);
+                if(data.error) throw new Error(data.error);
+
+                currentEditData.classStudents = data.rows;
+
+                let seatOptions = '<option value="">請選座號</option>';
+                data.rows.forEach(stu => {
+                    const isReg = (stu.E == 1 || stu.E == '1');
+                    if (!isReg || stu.rowIndex === rowIndex) {
+                        seatOptions += `<option value="${stu.rowIndex}" ${stu.rowIndex === rowIndex ? 'selected' : ''}>${stu.B}號 - ${stu.C}</option>`;
+                    }
+                });
+
+                document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${rowIndex}, this.value)">${seatOptions}</select>`;
+            })
+            .catch(err => {
+                showLoader(false); showToast("讀取班級名單失敗: " + err.message, "error");
+            });
+      }
+  }
+
+  function fetchEditCrossStudents(oldRowIndex, newClassName, preSelectRowIndex = null) {
+      if(!newClassName) {
+          document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">請選班級</option></select>`;
+          document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+          document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+          return;
+      }
+      
+      document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">載入中...</option></select>`;
+
+      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(newClassName)}&t=${Date.now()}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.error) throw new Error(data.error);
+            currentEditData.classStudents = data.rows;
+
+            let seatOptions = '<option value="">請選座號</option>';
+            data.rows.forEach(stu => {
+                const isReg = (stu.E == 1 || stu.E == '1');
+                if (!isReg || stu.rowIndex === preSelectRowIndex) {
+                    seatOptions += `<option value="${stu.rowIndex}" ${stu.rowIndex === preSelectRowIndex ? 'selected' : ''}>${stu.B}號 - ${stu.C}</option>`;
+                }
+            });
+
+            document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${oldRowIndex}, this.value)">${seatOptions}</select>`;
+
+            if (preSelectRowIndex) {
+                updateEditSelection(oldRowIndex, preSelectRowIndex);
+            } else {
+                document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+                document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+            }
+        })
+        .catch(err => { showToast("讀取失敗: " + err.message, "error"); });
+  }
+
+  function updateEditSelection(oldRowIndex, newRowIndexStr) {
+      if(!newRowIndexStr) {
+          document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+          document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+          return;
+      }
+      const newRowIndex = parseInt(newRowIndexStr);
+      const stu = currentEditData.classStudents.find(s => s.rowIndex === newRowIndex);
+      if(stu) {
+          document.getElementById(`cell-name-${oldRowIndex}`).textContent = stu.C;
+          document.getElementById(`cell-stid-${oldRowIndex}`).textContent = stu.D || '';
+      }
+  }
+
+  function confirmSwapSigned(oldRowIndex) {
+      const select = document.querySelector(`#cell-seat-${oldRowIndex} select`);
+      if(!select) return;
+      const newRowIndexStr = select.value;
+      
+      if(!newRowIndexStr) return showToast('請選擇替換學生', 'error');
+      const newRowIndex = parseInt(newRowIndexStr);
+      
+      if (newRowIndex === oldRowIndex) { showToast('未變更', 'info'); fetchSignedList(); return; }
+
+      const payload = [{rowIndex: oldRowIndex, E: 0, F: ''}, {rowIndex: newRowIndex, E: 1, F: currentEditData.oldGroup}];
+
+      showLoader(true);
+      fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+      })
+      .then(res => res.json())
+      .then(data => {
+          showLoader(false);
+          if(data.error) throw new Error(data.error);
+          showToast('✅ 替換成功！');
+          fetchSignedList(); 
+      })
+      .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
+  }
+
+  // ================== 進階設定區域 ==================
+  function triggerResetDefaults() {
+    document.getElementById('advancedMenuModal').style.display = 'none'; 
+    showConfirm("⚠️ 極度危險操作", "清除「所有學生」紀錄無法復原，確定執行？", () => {
+        showLoader(true);
+        fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'resetDefaults' })
+        })
+        .then(res => res.json())
+        .then(data => {
+          showLoader(false);
+          if(data.error) throw new Error(data.error);
+          showToast("已恢復預設值！");
+          document.getElementById('classSelect').value = '';
+          document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
+        })
+        .catch(err => { showLoader(false); showToast("重設失敗: " + err.message, "error"); });
+    }, "確認清除全部", "red");
+  }
+
+  function openNoticeSettings() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getNoticeSettings' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      
+      const formContainer = document.getElementById('noticeFormContainer');
+      formContainer.innerHTML = '';
+      
+      for (let i = 0; i < 9; i++) {
+          const val = (data.data && data.data[i]) ? data.data[i][0] : '';
+          const div = document.createElement('div');
+          
+          if (i === 0) {
+              div.innerHTML = `
+                <label>第 ${i + 1} 項</label>
+                <textarea class="notice-input" rows="3" placeholder="留白即代表不顯示" 
+                          style="width: 100%; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; font-family: inherit; resize: vertical; margin-bottom: 10px;">${val}</textarea>`;
+          } else {
+              div.innerHTML = `<label>第 ${i + 1} 項</label><input type="text" class="notice-input" value="${val}" placeholder="留白即代表不顯示" />`;
+          }
+          formContainer.appendChild(div);
+      }
+      document.getElementById('noticeSettingsModal').style.display = 'flex';
+    })
+    .catch(err => {
+      showLoader(false); showToast("讀取失敗", "error");
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
+  }
+
+  function saveNoticeSettings() {
+    const payload = [];
+    document.querySelectorAll('#noticeFormContainer .notice-input').forEach((input) => {
+        payload.push(input.value.trim());
     });
 
-    if (detailData.length === 0) return { ok: false, message: '沒有有效的正式組別資料' };
-
-    const tmpSs = SpreadsheetApp.create(filename);
-    const tmpId = tmpSs.getId();
-    const tmpSh = tmpSs.getSheets()[0];
-    tmpSh.setName('分組名冊');
-
-    tmpSh.getRange('A1:H1').merge().setValue(docTitle).setHorizontalAlignment('center').setVerticalAlignment('middle').setFontSize(14).setFontWeight('bold');
-    
-    const headersDetail = ['姓名', '學號', '班級', '座號', '知識王組別', '合併名單'];
-    tmpSh.getRange('A2:F2').setValues([headersDetail]).setHorizontalAlignment('center').setFontWeight('bold').setBackground('#f3f4f6').setBorder(true, true, true, true, true, true);
-    tmpSh.getRange('H2').setValue('合併名單').setHorizontalAlignment('center').setFontWeight('bold').setBackground('#f3f4f6').setBorder(true, true, true, true, true, true);
-
-    const detailRange = tmpSh.getRange(3, 1, detailData.length, 6);
-    const textFormatsDetail = detailData.map(() => ['@', '@', '@', '@', '@', '@']);
-    detailRange.setNumberFormats(textFormatsDetail);
-    detailRange.setValues(detailData).setHorizontalAlignment('center').setVerticalAlignment('middle').setBorder(true, true, true, true, true, true);
-    
-    const summaryRange = tmpSh.getRange(3, 8, summaryData.length, 1);
-    const textFormatsSummary = summaryData.map(() => ['@']);
-    summaryRange.setNumberFormats(textFormatsSummary);
-    summaryRange.setValues(summaryData).setHorizontalAlignment('center').setVerticalAlignment('middle').setBorder(true, true, true, true, true, true);
-
-    tmpSh.setColumnWidth(1, 80);  
-    tmpSh.setColumnWidth(2, 100); 
-    tmpSh.setColumnWidth(3, 60);  
-    tmpSh.setColumnWidth(4, 60);  
-    tmpSh.setColumnWidth(5, 100); 
-    tmpSh.setColumnWidth(6, 400); 
-    tmpSh.setColumnWidth(7, 20);  
-    tmpSh.setColumnWidth(8, 400); 
-
-    SpreadsheetApp.flush();
-    
-    try {
-      DriveApp.getFileById(tmpId).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    } catch (shareErr) {
-      throw new Error("分享權限設定失敗，請確認已執行 step1_FixPermissions 重新授權。");
-    }
-
-    const excelUrl = `https://docs.google.com/spreadsheets/d/${tmpId}/export?format=xlsx`;
-    return { ok: true, excelUrl: excelUrl, tmpId: tmpId };
-
-  } catch (err) {
-    return { ok: false, message: err.message };
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'saveNoticeSettings', payload: payload })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("注意事項儲存成功，即將重新載入！");
+      setTimeout(() => window.location.reload(), 1500);
+    })
+    .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
-}
 
-function deleteTempSheet(payload) {
-  try {
-    if (Array.isArray(payload)) {
-      payload.forEach(id => {
-        try { DriveApp.getFileById(id).setTrashed(true); } catch(e){}
+  function openBasicSettings() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    showLoader(true);
+    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getBasicSettings' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      
+      const formContainer = document.getElementById('settingsFormContainer');
+      formContainer.innerHTML = '';
+      
+      data.data.forEach((row, idx) => {
+          const label = row[0];
+          const val = row[1] || '';
+          if(!label) return; 
+          
+          let inputHtml = '';
+          if (label.includes('學年度')) {
+              inputHtml = `<select class="setting-input">`;
+              for(let i=110; i<=130; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
+              inputHtml += `</select>`;
+          } else if (label.includes('學期')) {
+              inputHtml = `<select class="setting-input"><option value="1" ${String(val)==='1'?'selected':''}>1</option><option value="2" ${String(val)==='2'?'selected':''}>2</option></select>`;
+          } else if (label.includes('報名方式')) {
+              inputHtml = `<select class="setting-input"><option value="個人" ${val==='個人'?'selected':''}>個人</option><option value="分組" ${val==='分組'?'selected':''}>分組</option></select>`;
+          } else if (label.includes('人數') || label.includes('組數') || label.includes('上限')) {
+              inputHtml = `<select class="setting-input">`;
+              for(let i=1; i<=300; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
+              inputHtml += `</select>`;
+          } else {
+              inputHtml = `<input type="text" class="setting-input" value="${val}" />`;
+          }
+          
+          const div = document.createElement('div');
+          div.innerHTML = `<label>${label}</label>${inputHtml}`;
+          formContainer.appendChild(div);
       });
-    } else {
-      DriveApp.getFileById(payload).setTrashed(true);
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false };
+      document.getElementById('basicSettingsModal').style.display = 'flex';
+    })
+    .catch(err => {
+      showLoader(false); showToast("讀取失敗", "error");
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
   }
-}
+
+  function saveBasicSettings() {
+    const payload = [];
+    document.querySelectorAll('#settingsFormContainer .setting-input').forEach((input) => {
+        payload.push(input.value.trim());
+    });
+
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'saveBasicSettings', payload: payload })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("設定儲存成功，即將重新載入！");
+      setTimeout(() => window.location.reload(), 1500);
+    })
+    .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
+  }
+
+  // ================== 公假單 ==================
+  function generateOfficeLeave() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("公假單產生", "確定要產生「學務處公假單」並直接下載嗎？", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
+          .then(res => res.json())
+          .then(data => { 
+              showLoader(false); 
+              if(data.error||!data.ok) throw new Error(data.message||'失敗');
+              showToast("✅ 已為您產生檔案，即將自動下載！");
+              
+              triggerDownload(data.pdfUrl);
+              setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
+
+              setTimeout(() => {
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+              }, 10000);
+          })
+          .catch(err => { showLoader(false); showToast(err.message, "error"); });
+      }, "確定下載", "blue");
+  }
+
+  function generateClassLeave() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("公假單產生", "確定要合併產生「班級公假單」並直接下載 PDF 嗎？", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave' }) })
+          .then(res => res.json())
+          .then(data => { 
+              showLoader(false);
+              if(data.error||!data.ok) throw new Error(data.message||'失敗');
+              showToast(`✅ 已合併（共 ${data.count} 班），即將開始下載！`);
+              
+              triggerDownload(data.pdfUrl);
+              setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
+              
+              setTimeout(() => {
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+              }, 10000);
+          })
+          .catch(err => { showLoader(false); showToast(err.message, "error"); });
+      }, "確定下載", "blue");
+  }
+
+  // ================== 分組資料下載 ==================
+  function generateGroupData() {
+      document.getElementById('advancedMenuModal').style.display = 'none';
+      showConfirm("分組資料產生", "確定要整理分組資料並下載 Excel 嗎？\n(將自動合併隊員名單供參考使用)", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateGroupData' }) })
+          .then(res => res.json())
+          .then(data => { 
+              showLoader(false);
+              if(data.error||!data.ok) throw new Error(data.message||'失敗，請確認是否已有正式分組資料');
+              showToast(`✅ 分組資料整理完成，即將開始下載！`);
+              
+              triggerDownload(data.excelUrl);
+              
+              setTimeout(() => {
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+              }, 10000);
+          })
+          .catch(err => { showLoader(false); showToast(err.message, "error"); });
+      }, "確定下載", "blue");
+  }
+
+  // ================== 跨班與確定分組 ==================
+  function confirmGroupAssignment() {
+      const advModal = document.getElementById('advancedMenuModal');
+      if(advModal) advModal.style.display = 'none';
+      
+      showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
+          showLoader(true);
+          fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'confirmGroups' })
+          })
+          .then(res => res.json())
+          .then(data => {
+              showLoader(false);
+              if(data.error) throw new Error(data.error);
+              showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
+              fetchSignedList(); 
+          })
+          .catch(err => {
+              showLoader(false);
+              showToast("分組失敗: " + err.message, "error");
+          });
+      }, "執行分組", "blue");
+  }
+
+  function openCrossClassModal() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    [1, 2, 3].forEach(num => {
+        const clsSel = document.getElementById(`ccClass${num}`);
+        clsSel.innerHTML = '<option value="">-- 選擇班級 --</option>';
+        sysClasses.forEach(c => { clsSel.innerHTML += `<option value="${c}">${c} 班</option>`; });
+        document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
+    });
+    document.getElementById('crossClassModal').style.display = 'flex';
+  }
+
+  function fetchCrossStudents(num) {
+    const cls = document.getElementById(`ccClass${num}`).value;
+    const stuSel = document.getElementById(`ccStudent${num}`);
+    if(!cls) { stuSel.innerHTML = '<option value="">-- 先選班級 --</option>'; return; }
+    
+    stuSel.innerHTML = '<option value="">載入中...</option>';
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
+      .then(res => res.json())
+      .then(data => {
+          stuSel.innerHTML = '<option value="">-- 選擇學生 --</option>';
+          data.rows.forEach(stu => {
+              const isReg = (stu.E == 1 || stu.E == '1');
+              const mark = isReg ? ' (已報名)' : '';
+              stuSel.innerHTML += `<option value="${stu.rowIndex}" ${isReg ? 'disabled' : ''}>${stu.B}號 - ${stu.C}${mark}</option>`;
+          });
+      });
+  }
+
+  function triggerSubmitCrossClassTeam() {
+    const s1 = document.getElementById('ccStudent1').value;
+    const s2 = document.getElementById('ccStudent2').value;
+    const s3 = document.getElementById('ccStudent3').value;
+    if(!s1 || !s2 || !s3) return showToast("請選滿3人！", "error");
+    if(new Set([s1, s2, s3]).size !== 3) return showToast("不可重複！", "error");
+
+    showConfirm("跨班組隊", "確定組成跨班隊伍嗎？", () => {
+        showLoader(true);
+        fetch(GAS_API_URL, {
+            method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'saveCrossClassTeam', payload: [Number(s1), Number(s2), Number(s3)] })
+        })
+        .then(res => res.json())
+        .then(data => {
+            showLoader(false);
+            showToast(`🎉 成功！組別：${data.newTeam}`);
+            
+            [1, 2, 3].forEach(num => {
+                document.getElementById(`ccClass${num}`).value = '';
+                document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
+            });
+            
+            if(document.getElementById('classSelect').value) queryStudents(); 
+        });
+    }, "確定組隊", "blue");
+  }
+
+  // 監聽密碼輸入框，按下 Enter 也可以驗證
+  document.getElementById('adminPwd').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+          verifyAdmin();
+      }
+  });
+</script>
+</body>
+</html>
