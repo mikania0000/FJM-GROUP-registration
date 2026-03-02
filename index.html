@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.13</title>
+<title>報名系統 v2.9.14</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -99,25 +99,11 @@
   .btn.outline { background: transparent; border: 2px solid var(--danger); color: var(--danger); }
   .btn.outline-gray { background: transparent; border: 2px solid #94a3b8; color: #475569; }
 
-  /* ★ 新增：專屬手機版的控制列排版 (解決按鈕凌亂換行的問題) */
   @media (max-width: 600px) {
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .controls-left {
-      display: contents; /* 攤平子元素，讓它們直接參與網格排版 */
-    }
-    select.main-select {
-      grid-column: 1 / -1; /* 下拉選單佔滿整列 */
-      width: 100%;
-    }
-    .controls .btn {
-      width: 100%; /* 按鈕佔滿各自的網格 */
-      padding: 12px 8px; /* 稍微縮小內距，避免文字太長被擠壓 */
-      font-size: 15px;
-    }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .controls-left { display: contents; }
+    select.main-select { grid-column: 1 / -1; width: 100%; }
+    .controls .btn { width: 100%; padding: 12px 8px; font-size: 15px; }
   }
 
   .notice-wrapper { display: flow-root; }
@@ -160,47 +146,42 @@
   .row-select.sel-wait { background: var(--warning); color: white; border-color: var(--warning); }
   .row-select:focus { transform: scale(1.05); }
 
-  .vibrant-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
+  .vibrant-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 750px; }
   .vibrant-table th { background: var(--primary); color: white; padding: 16px; text-align: left; font-size: 16px;}
   .vibrant-table td { padding: 16px; background: white; border-bottom: 1px solid #e2e8f0; font-size: 16px; font-weight: bold; vertical-align: middle;}
   .vibrant-table tr:hover td { background: #f8fafc; }
   .vibrant-table th:first-child { border-top-left-radius: 12px; }
   .vibrant-table th:last-child { border-top-right-radius: 12px; }
   
-  /* 標籤與群組顏色樣式 */
   .tag { border-radius: 8px; font-size: 14px; font-weight: 900; padding: 6px 12px; color: white; letter-spacing: 1px; display:inline-block;}
   .tag.main { background: var(--success); }
   .tag.wait { background: var(--warning); }
   .tag.primary { background: var(--primary); }
   .tag.gray { background: #e2e8f0; color: transparent; } 
   
-  /* 動態分配的 10 種組別顏色 */
-  .tag.group-color-0 { background: #8b5cf6; } /* 紫色 */
-  .tag.group-color-1 { background: #ec4899; } /* 粉色 */
-  .tag.group-color-2 { background: #3b82f6; } /* 藍色 */
-  .tag.group-color-3 { background: #f97316; } /* 橘色 */
-  .tag.group-color-4 { background: #14b8a6; } /* 藍綠 */
-  .tag.group-color-5 { background: #eab308; } /* 黃色 */
-  .tag.group-color-6 { background: #ef4444; } /* 紅色 */
-  .tag.group-color-7 { background: #06b6d4; } /* 青色 */
-  .tag.group-color-8 { background: #10b981; } /* 翠綠 */
-  .tag.group-color-9 { background: #6366f1; } /* 靛藍 */
+  .tag.group-color-0 { background: #8b5cf6; } 
+  .tag.group-color-1 { background: #ec4899; } 
+  .tag.group-color-2 { background: #3b82f6; } 
+  .tag.group-color-3 { background: #f97316; } 
+  .tag.group-color-4 { background: #14b8a6; } 
+  .tag.group-color-5 { background: #eab308; } 
+  .tag.group-color-6 { background: #ef4444; } 
+  .tag.group-color-7 { background: #06b6d4; } 
+  .tag.group-color-8 { background: #10b981; } 
+  .tag.group-color-9 { background: #6366f1; } 
 
-  /* ★ 修改：解決 Modal 在手機版太長時，上方內容被截斷的問題 */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-    display: none; justify-content: center; align-items: flex-start; /* 改為 flex-start 讓內容從頂部開始 */
-    z-index: 1800; overflow-y: auto; padding: 40px 20px; /* 增加上下 padding，確保滑動空間 */
+    display: none; justify-content: center; align-items: flex-start;
+    z-index: 1800; overflow-y: auto; padding: 40px 20px;
   }
   .modal { 
-    margin: auto; /* 確保內容較少時依然能垂直置中 */
-    background: #fff; padding: 30px; border-radius: 20px; width: 100%; 
+    margin: auto; background: #fff; padding: 30px; border-radius: 20px; width: 100%; 
     max-width: 400px; text-align: center; box-shadow: var(--shadow-lg); position: relative;
   }
   .modal-large { max-width: 600px; }
   .modal input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center; }
 
-  /* 進階設定按鈕網格 */
   .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
   @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
   .btn-adv { padding: 16px 12px; border-radius: 16px; color: white; font-weight: bold; font-size: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;}
@@ -238,7 +219,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.13</span>
+    報名系統 <span class="version-text">v2.9.14</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -257,7 +238,6 @@
       <button class="btn outline" onclick="showAdminModal()">⚙️ 進階設定</button>
     </div>
     
-    <!-- 置頂狀態統計列 -->
     <div class="sticky-stats" id="statsBar">
       <div class="stats-badges" id="statsBadgesContainer">
         <!-- 動態產生 -->
@@ -412,7 +392,6 @@
     closeConfirmModal();
   }
 
-  // 小工具：安全觸發下載
   function triggerDownload(url) {
       if (!url) return;
       const a = document.createElement('a');
@@ -431,22 +410,31 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.13</span>`;
-        document.title = `${data.title} v2.9.13`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.14</span>`;
+        document.title = `${data.title} v2.9.14`;
         
-        sysConfig = data; // 存入全域設定
+        sysConfig = data; 
         sysClasses = data.classes || [];
 
         if((data.notices && data.notices.length > 0) || data.imageUrl) {
           document.getElementById('noticeCard').style.display = 'block';
           let contentHtml = '';
+          
+          // ★ 新增：支援 Canva 連結與一般圖片連結
           if(data.imageUrl) {
-             let imgUrl = data.imageUrl;
-             const driveMatch = imgUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-             if(driveMatch && driveMatch[1]) {
-                 imgUrl = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+             let url = data.imageUrl.trim();
+             // 判斷是否為 Canva 設計連結
+             if (url.includes('canva.com/design/')) {
+                 let baseUrl = url.split('/view')[0] + '/view?embed';
+                 contentHtml += `<iframe src="${baseUrl}" class="notice-img" style="height: 350px; border: none; overflow: hidden;" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
+             } else {
+                 // 一般雲端硬碟圖片或直接圖片連結
+                 const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                 if(driveMatch && driveMatch[1]) {
+                     url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                 }
+                 contentHtml += `<img src="${url}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
              }
-             contentHtml += `<img src="${imgUrl}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
           }
           if(data.notices) {
              contentHtml += data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
@@ -787,16 +775,18 @@
 
             const officialHtml = `<span class="tag ${offColorClass}" style="${styleStr}">${officialText}</span>`;
 
+            // ★ 新增：為 class 的 td 加上 ID 以便動態修改；並加入「刪除」按鈕
             return `
             <tr id="signed-row-${r.rowIndex}">
-                <td>${r.className}</td>
+                <td id="cell-className-${r.rowIndex}">${r.className}</td>
                 <td id="cell-seat-${r.rowIndex}">${r.seatNum}</td>
                 <td id="cell-name-${r.rowIndex}">${r.name}</td>
                 <td id="cell-stid-${r.rowIndex}">${r.studentId}</td>
                 <td><span class="tag ${tagClass}">${r.group}</span></td>
                 <td>${officialHtml}</td>
-                <td id="cell-action-${r.rowIndex}" style="text-align:center;">
+                <td id="cell-action-${r.rowIndex}" style="text-align:center; white-space:nowrap;">
                    <button class="btn yellow" style="padding:6px 12px; font-size:14px; border-radius:8px;" onclick="handleEditSignedBtn(${r.rowIndex}, '${r.className}', '${r.group}')">修改</button>
+                   <button class="btn outline" style="padding:6px 12px; font-size:14px; border-radius:8px; margin-left: 4px;" onclick="handleDeleteSignedBtn(${r.rowIndex}, '${r.name}')">刪除</button>
                 </td>
             </tr>`;
         }).join('');
@@ -817,15 +807,13 @@
       });
   }
 
-  // ================== 管理員與替換功能 ==================
+  // ================== 管理員、修改與刪除功能 ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     const pwdInput = document.getElementById('adminPwd');
     pwdInput.value = '';
     document.getElementById('adminPwdModal').style.display = 'flex';
-    setTimeout(() => {
-      pwdInput.focus();
-    }, 50);
+    setTimeout(() => { pwdInput.focus(); }, 50);
   }
 
   function verifyAdmin() {
@@ -845,43 +833,127 @@
       showAdminModal(() => startEditSigned(rowIndex, className, group));
   }
 
+  // ★ 新增：刪除按鈕邏輯
+  function handleDeleteSignedBtn(rowIndex, name) {
+      showAdminModal(() => confirmDeleteSigned(rowIndex, name));
+  }
+
+  function confirmDeleteSigned(rowIndex, name) {
+      showConfirm("刪除確認", `確定要取消「${name}」的報名嗎？這將會清除他的分組資料。`, () => {
+          showLoader(true);
+          const payload = [{rowIndex: rowIndex, E: 0, F: ''}];
+          fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+          })
+          .then(res => res.json())
+          .then(data => {
+              showLoader(false);
+              if(data.error) throw new Error(data.error);
+              showToast('✅ 已成功刪除報名！');
+              fetchSignedList();
+          })
+          .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
+      }, "確定刪除", "red");
+  }
+
+  // ★ 修改：跨班修改時，可以切換班級與連動資料
   function startEditSigned(rowIndex, className, oldGroup) {
-      showLoader(true);
-      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
+      currentEditData.oldRowIndex = rowIndex;
+      currentEditData.oldGroup = oldGroup;
+
+      const tr = document.getElementById(`signed-row-${rowIndex}`);
+      if(!tr) return;
+
+      document.getElementById(`cell-action-${rowIndex}`).innerHTML = `
+        <button class="btn green" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="confirmSwapSigned(${rowIndex})">確定</button>
+        <button class="btn outline-gray" style="padding:6px 10px; font-size:14px; border-radius:8px; margin-left: 4px;" onclick="fetchSignedList()">取消</button>
+      `;
+      tr.style.background = 'var(--warning-light)';
+
+      const isCross = oldGroup.includes('跨班');
+
+      if (isCross) {
+          // 跨班隊伍：可以修改班級
+          let classOptions = '<option value="">請選班級</option>';
+          sysClasses.forEach(c => {
+              classOptions += `<option value="${c}" ${c === className ? 'selected' : ''}>${c} 班</option>`;
+          });
+          document.getElementById(`cell-className-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="fetchEditCrossStudents(${rowIndex}, this.value)">${classOptions}</select>`;
+          document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">載入中...</option></select>`;
+          
+          fetchEditCrossStudents(rowIndex, className, rowIndex);
+      } else {
+          // 一般隊伍：只修改同班內的座號
+          showLoader(true);
+          fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
+            .then(res => res.json())
+            .then(data => {
+                showLoader(false);
+                if(data.error) throw new Error(data.error);
+
+                currentEditData.classStudents = data.rows;
+
+                let seatOptions = '<option value="">請選座號</option>';
+                data.rows.forEach(stu => {
+                    const isReg = (stu.E == 1 || stu.E == '1');
+                    if (!isReg || stu.rowIndex === rowIndex) {
+                        seatOptions += `<option value="${stu.rowIndex}" ${stu.rowIndex === rowIndex ? 'selected' : ''}>${stu.B}號 - ${stu.C}</option>`;
+                    }
+                });
+
+                document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${rowIndex}, this.value)">${seatOptions}</select>`;
+            })
+            .catch(err => {
+                showLoader(false); showToast("讀取班級名單失敗: " + err.message, "error");
+            });
+      }
+  }
+
+  // ★ 新增：跨班修改時，動態載入新班級學生
+  function fetchEditCrossStudents(oldRowIndex, newClassName, preSelectRowIndex = null) {
+      if(!newClassName) {
+          document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">請選班級</option></select>`;
+          document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+          document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+          return;
+      }
+      
+      document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">載入中...</option></select>`;
+
+      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(newClassName)}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
-            showLoader(false);
             if(data.error) throw new Error(data.error);
-
-            currentEditData.oldRowIndex = rowIndex;
             currentEditData.classStudents = data.rows;
-            currentEditData.oldGroup = oldGroup;
-
-            const tr = document.getElementById(`signed-row-${rowIndex}`);
-            if(!tr) return;
 
             let seatOptions = '<option value="">請選座號</option>';
             data.rows.forEach(stu => {
                 const isReg = (stu.E == 1 || stu.E == '1');
-                if (!isReg || stu.rowIndex === rowIndex) {
-                    seatOptions += `<option value="${stu.rowIndex}" ${stu.rowIndex === rowIndex ? 'selected' : ''}>${stu.B}號 - ${stu.C}</option>`;
+                if (!isReg || stu.rowIndex === preSelectRowIndex) {
+                    seatOptions += `<option value="${stu.rowIndex}" ${stu.rowIndex === preSelectRowIndex ? 'selected' : ''}>${stu.B}號 - ${stu.C}</option>`;
                 }
             });
 
-            document.getElementById(`cell-seat-${rowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${rowIndex}, this.value)">${seatOptions}</select>`;
-            document.getElementById(`cell-action-${rowIndex}`).innerHTML = `
-              <button class="btn green" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="confirmSwapSigned(${rowIndex})">確定</button>
-              <button class="btn outline-gray" style="padding:6px 10px; font-size:14px; border-radius:8px;" onclick="fetchSignedList()">取消</button>
-            `;
-            tr.style.background = 'var(--warning-light)';
+            document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;" onchange="updateEditSelection(${oldRowIndex}, this.value)">${seatOptions}</select>`;
+
+            if (preSelectRowIndex) {
+                updateEditSelection(oldRowIndex, preSelectRowIndex);
+            } else {
+                document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+                document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+            }
         })
-        .catch(err => {
-            showLoader(false); showToast("讀取班級名單失敗: " + err.message, "error");
-        });
+        .catch(err => { showToast("讀取失敗: " + err.message, "error"); });
   }
 
   function updateEditSelection(oldRowIndex, newRowIndexStr) {
-      if(!newRowIndexStr) return;
+      if(!newRowIndexStr) {
+          document.getElementById(`cell-name-${oldRowIndex}`).textContent = '-';
+          document.getElementById(`cell-stid-${oldRowIndex}`).textContent = '-';
+          return;
+      }
       const newRowIndex = parseInt(newRowIndexStr);
       const stu = currentEditData.classStudents.find(s => s.rowIndex === newRowIndex);
       if(stu) {
@@ -893,11 +965,14 @@
   function confirmSwapSigned(oldRowIndex) {
       const select = document.querySelector(`#cell-seat-${oldRowIndex} select`);
       if(!select) return;
-      const newRowIndex = parseInt(select.value);
-
-      if(!newRowIndex) return showToast('請選擇替換學生', 'error');
+      const newRowIndexStr = select.value;
+      
+      if(!newRowIndexStr) return showToast('請選擇替換學生', 'error');
+      const newRowIndex = parseInt(newRowIndexStr);
+      
       if (newRowIndex === oldRowIndex) { showToast('未變更', 'info'); fetchSignedList(); return; }
 
+      // 即便是不同班級，RowIndex 替換邏輯依然能完美運作
       const payload = [{rowIndex: oldRowIndex, E: 0, F: ''}, {rowIndex: newRowIndex, E: 1, F: currentEditData.oldGroup}];
 
       showLoader(true);
@@ -938,7 +1013,6 @@
     }, "確認清除全部", "red");
   }
 
-  // ===== 注意事項設定 (第1項改為文字區塊 TextArea) =====
   function openNoticeSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -997,7 +1071,6 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ===== 基本設定 =====
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -1077,20 +1150,14 @@
           .then(res => res.json())
           .then(data => { 
               showLoader(false); 
-              
-              if(data.error||!data.ok) {
-                  throw new Error(data.message||'失敗');
-              }
+              if(data.error||!data.ok) throw new Error(data.message||'失敗');
               showToast("✅ 已為您產生檔案，即將自動下載！");
               
               triggerDownload(data.pdfUrl);
               setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
 
               setTimeout(() => {
-                  fetch(GAS_API_URL, {
-                      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                      body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
-                  });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
@@ -1105,19 +1172,14 @@
           .then(res => res.json())
           .then(data => { 
               showLoader(false);
-              
-              if(data.error||!data.ok) {
-                  throw new Error(data.message||'失敗');
-              }
+              if(data.error||!data.ok) throw new Error(data.message||'失敗');
               showToast(`✅ 已合併（共 ${data.count} 班），即將開始下載！`);
+              
               triggerDownload(data.pdfUrl);
               setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
               
               setTimeout(() => {
-                  fetch(GAS_API_URL, {
-                      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                      body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
-                  });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
@@ -1133,18 +1195,13 @@
           .then(res => res.json())
           .then(data => { 
               showLoader(false);
-              
-              if(data.error||!data.ok) {
-                  throw new Error(data.message||'失敗，請確認是否已有正式分組資料');
-              }
+              if(data.error||!data.ok) throw new Error(data.message||'失敗，請確認是否已有正式分組資料');
               showToast(`✅ 分組資料整理完成，即將開始下載！`);
+              
               triggerDownload(data.excelUrl);
               
               setTimeout(() => {
-                  fetch(GAS_API_URL, {
-                      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                      body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId })
-                  });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
           })
           .catch(err => { showLoader(false); showToast(err.message, "error"); });
@@ -1204,6 +1261,7 @@
       });
   }
 
+  // ★ 修改：跨班組隊送出後不清空畫面，方便連續點擊
   function triggerSubmitCrossClassTeam() {
     const s1 = document.getElementById('ccStudent1').value;
     const s2 = document.getElementById('ccStudent2').value;
@@ -1211,7 +1269,7 @@
     if(!s1 || !s2 || !s3) return showToast("請選滿3人！", "error");
     if(new Set([s1, s2, s3]).size !== 3) return showToast("不可重複！", "error");
 
-    document.getElementById('crossClassModal').style.display = 'none';
+    // 不關閉 modal，直接跳確認視窗
     showConfirm("跨班組隊", "確定組成跨班隊伍嗎？", () => {
         showLoader(true);
         fetch(GAS_API_URL, {
@@ -1222,7 +1280,14 @@
         .then(data => {
             showLoader(false);
             showToast(`🎉 成功！組別：${data.newTeam}`);
-            closeAllModals();
+            
+            // ★ 清空跨班選擇框，讓使用者可以直接繼續組下一隊
+            [1, 2, 3].forEach(num => {
+                document.getElementById(`ccClass${num}`).value = '';
+                document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
+            });
+            
+            // 同步更新背景已選擇的班級資料（如果有的話）
             if(document.getElementById('classSelect').value) queryStudents(); 
         });
     }, "確定組隊", "blue");
