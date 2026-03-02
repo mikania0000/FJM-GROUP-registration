@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.27</title>
+<title>報名系統 v2.9.29</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.27</span>
+    報名系統 <span class="version-text">v2.9.29</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -326,7 +326,7 @@
       <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>5. 班級公假單</button>
       <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>6. 雲端資料夾</button>
       <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>7. 跨班組隊</button>
-      <button class="btn-adv btn-adv-pink" onclick="confirmGroupAssignment()"><span style="font-size:28px;">🏷️</span>8. 確定分組</button>
+      <button class="btn-adv btn-adv-pink" onclick="checkAndConfirmGroups()"><span style="font-size:28px;">🏷️</span>8. 確定分組</button>
       <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>9. 分組資料</button>
       <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>10. 預備功能</button>
     </div>
@@ -443,8 +443,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.27</span>`;
-        document.title = `${data.title} v2.9.27`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.29</span>`;
+        document.title = `${data.title} v2.9.29`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -704,7 +704,7 @@
         const topActionsHtml = `
           <div style="display:flex; justify-content:center; gap:12px; margin-bottom:16px;">
             <button class="btn outline-gray" style="padding:10px 20px; font-size:16px;" onclick="showAdminModal(triggerCancelGroups)">❌ 取消分組</button>
-            <button class="btn blue" style="padding:10px 20px; font-size:16px;" onclick="showAdminModal(confirmGroupAssignment)">🏷️ 確定分組</button>
+            <button class="btn blue" style="padding:10px 20px; font-size:16px;" onclick="showAdminModal(checkAndConfirmGroups)">🏷️ 確定分組</button>
           </div>
         `;
 
@@ -1270,30 +1270,60 @@
       }, "確定下載", "blue");
   }
 
-  // ================== 跨班與確定分組 ==================
-  function confirmGroupAssignment() {
+  // ================== 確定分組 (包含人數檢查流程) ==================
+  // ★ 修改：從原本直接呼叫執行，改為先檢查人數狀態再決定是否執行
+  function checkAndConfirmGroups() {
       const advModal = document.getElementById('advancedMenuModal');
       if(advModal) advModal.style.display = 'none';
       
-      showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
-          showLoader(true);
-          fetch(GAS_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: 'confirmGroups' })
-          })
-          .then(res => res.json())
-          .then(data => {
-              showLoader(false);
-              if(data.error) throw new Error(data.error);
-              showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
-              fetchSignedList(); 
-          })
-          .catch(err => {
-              showLoader(false);
-              showToast("分組失敗: " + err.message, "error");
-          });
-      }, "執行分組", "blue");
+      showLoader(true);
+      fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'checkGroupStatus' })
+      })
+      .then(res => res.json())
+      .then(data => {
+          showLoader(false);
+          if (data.error) throw new Error(data.error);
+          
+          if (data.hasIncomplete) {
+              // 如果有人數不足，跳出黃色警告視窗詢問是否繼續
+              showConfirm("⚠️ 人數不足警告", data.message, () => {
+                  executeGroupAssignment();
+              }, "強制分組", "yellow");
+          } else {
+              // 如果人數都足夠，跳出一般的確認視窗
+              showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
+                  executeGroupAssignment();
+              }, "執行分組", "blue");
+          }
+      })
+      .catch(err => {
+          showLoader(false);
+          showToast("檢查失敗: " + err.message, "error");
+      });
+  }
+
+  // 實際呼叫執行分組的 API
+  function executeGroupAssignment() {
+      showLoader(true);
+      fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'executeConfirmGroups' })
+      })
+      .then(res => res.json())
+      .then(data => {
+          showLoader(false);
+          if(data.error) throw new Error(data.error);
+          showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
+          fetchSignedList(); 
+      })
+      .catch(err => {
+          showLoader(false);
+          showToast("分組失敗: " + err.message, "error");
+      });
   }
 
   function openCrossClassModal() {
