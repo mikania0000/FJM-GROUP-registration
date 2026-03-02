@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.14</title>
+<title>報名系統 v2.9.16</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -53,7 +53,8 @@
   .toast {
     position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
     color: #fff; padding: 14px 28px; border-radius: 999px; box-shadow: var(--shadow-lg);
-    z-index: 1700; display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
+    z-index: 9999; /* ★ 修正：拉到最頂層，避免被 Modal 蓋住 */
+    display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
   }
   .toast.show { display: block; animation: popDown 0.3s ease forwards; }
   @keyframes popDown { from { top: -20px; opacity: 0; } to { top: 20px; opacity: 1; } }
@@ -62,7 +63,8 @@
   .toast.info { background: var(--info); }
 
   #loader {
-    position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 1600;
+    position: fixed; inset: 0; background: rgba(255,255,255,0.85); 
+    z-index: 9998; /* ★ 修正：拉到對話框之上，避免轉圈圈看不到 */
     display: none; justify-content: center; align-items: center; flex-direction: column;
   }
   .spinner {
@@ -182,6 +184,11 @@
   .modal-large { max-width: 600px; }
   .modal input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center; }
 
+  /* ★ 確保輸入密碼跟確認提示的 Modal 永遠在最上層，不會被跨班視窗蓋住 */
+  #confirmModal, #adminPwdModal {
+    z-index: 2000;
+  }
+
   .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
   @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
   .btn-adv { padding: 16px 12px; border-radius: 16px; color: white; font-weight: bold; font-size: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s;}
@@ -219,7 +226,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.14</span>
+    報名系統 <span class="version-text">v2.9.16</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -410,8 +417,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.14</span>`;
-        document.title = `${data.title} v2.9.14`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.16</span>`;
+        document.title = `${data.title} v2.9.16`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -420,13 +427,13 @@
           document.getElementById('noticeCard').style.display = 'block';
           let contentHtml = '';
           
-          // ★ 新增：支援 Canva 連結與一般圖片連結
           if(data.imageUrl) {
              let url = data.imageUrl.trim();
              // 判斷是否為 Canva 設計連結
              if (url.includes('canva.com/design/')) {
                  let baseUrl = url.split('/view')[0] + '/view?embed';
-                 contentHtml += `<iframe src="${baseUrl}" class="notice-img" style="height: 350px; border: none; overflow: hidden;" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
+                 // ★ 修正：拿掉固定的 height: 350px，改用 aspect-ratio: 1 / 1.414 (A4比例) 與 height: auto，消除黑邊
+                 contentHtml += `<iframe src="${baseUrl}" class="notice-img" style="border: none; overflow: hidden; aspect-ratio: 1 / 1.414; height: auto;" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
              } else {
                  // 一般雲端硬碟圖片或直接圖片連結
                  const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -775,7 +782,6 @@
 
             const officialHtml = `<span class="tag ${offColorClass}" style="${styleStr}">${officialText}</span>`;
 
-            // ★ 新增：為 class 的 td 加上 ID 以便動態修改；並加入「刪除」按鈕
             return `
             <tr id="signed-row-${r.rowIndex}">
                 <td id="cell-className-${r.rowIndex}">${r.className}</td>
@@ -833,7 +839,6 @@
       showAdminModal(() => startEditSigned(rowIndex, className, group));
   }
 
-  // ★ 新增：刪除按鈕邏輯
   function handleDeleteSignedBtn(rowIndex, name) {
       showAdminModal(() => confirmDeleteSigned(rowIndex, name));
   }
@@ -858,7 +863,6 @@
       }, "確定刪除", "red");
   }
 
-  // ★ 修改：跨班修改時，可以切換班級與連動資料
   function startEditSigned(rowIndex, className, oldGroup) {
       currentEditData.oldRowIndex = rowIndex;
       currentEditData.oldGroup = oldGroup;
@@ -875,7 +879,6 @@
       const isCross = oldGroup.includes('跨班');
 
       if (isCross) {
-          // 跨班隊伍：可以修改班級
           let classOptions = '<option value="">請選班級</option>';
           sysClasses.forEach(c => {
               classOptions += `<option value="${c}" ${c === className ? 'selected' : ''}>${c} 班</option>`;
@@ -885,7 +888,6 @@
           
           fetchEditCrossStudents(rowIndex, className, rowIndex);
       } else {
-          // 一般隊伍：只修改同班內的座號
           showLoader(true);
           fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
             .then(res => res.json())
@@ -911,7 +913,6 @@
       }
   }
 
-  // ★ 新增：跨班修改時，動態載入新班級學生
   function fetchEditCrossStudents(oldRowIndex, newClassName, preSelectRowIndex = null) {
       if(!newClassName) {
           document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">請選班級</option></select>`;
@@ -972,7 +973,6 @@
       
       if (newRowIndex === oldRowIndex) { showToast('未變更', 'info'); fetchSignedList(); return; }
 
-      // 即便是不同班級，RowIndex 替換邏輯依然能完美運作
       const payload = [{rowIndex: oldRowIndex, E: 0, F: ''}, {rowIndex: newRowIndex, E: 1, F: currentEditData.oldGroup}];
 
       showLoader(true);
@@ -1261,7 +1261,7 @@
       });
   }
 
-  // ★ 修改：跨班組隊送出後不清空畫面，方便連續點擊
+  // ★ 跨班組隊送出流程：修復層疊視窗的遮擋問題
   function triggerSubmitCrossClassTeam() {
     const s1 = document.getElementById('ccStudent1').value;
     const s2 = document.getElementById('ccStudent2').value;
@@ -1269,7 +1269,6 @@
     if(!s1 || !s2 || !s3) return showToast("請選滿3人！", "error");
     if(new Set([s1, s2, s3]).size !== 3) return showToast("不可重複！", "error");
 
-    // 不關閉 modal，直接跳確認視窗
     showConfirm("跨班組隊", "確定組成跨班隊伍嗎？", () => {
         showLoader(true);
         fetch(GAS_API_URL, {
@@ -1287,7 +1286,6 @@
                 document.getElementById(`ccStudent${num}`).innerHTML = '<option value="">-- 先選班級 --</option>';
             });
             
-            // 同步更新背景已選擇的班級資料（如果有的話）
             if(document.getElementById('classSelect').value) queryStudents(); 
         });
     }, "確定組隊", "blue");
