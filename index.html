@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.33</title>
+<title>報名系統 v2.9.39</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.33</span>
+    報名系統 <span class="version-text">v2.9.39</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -307,7 +307,6 @@
 <div class="modal-overlay" id="adminPwdModal">
   <div class="modal">
     <h3 style="margin-top:0; color: var(--danger);">管理員驗證</h3>
-    <!-- 不再限制 maxlength，以配合任意長度密碼 -->
     <input type="password" id="adminPwd" placeholder="請輸入密碼" inputmode="text">
     <div style="display: flex; gap: 10px;">
       <button class="btn outline-gray" style="flex:1;" onclick="closeAllModals()">取消</button>
@@ -383,7 +382,7 @@
 
 <script>
   // ==========================================
-  // ⚠️ 前端防護：禁止右鍵與常用開發者快捷鍵 (防君子不防小人)
+  // ⚠️ 前端防護：禁止右鍵與常用開發者快捷鍵
   // ==========================================
   document.addEventListener('contextmenu', event => event.preventDefault()); 
   document.addEventListener('keydown', event => {
@@ -408,6 +407,7 @@
   let sysClasses = []; 
   
   let confirmCallback = null;
+  let confirmCancelCallback = null; // ★ 新增：暫存取消時的回調函數
   let adminNextAction = null; 
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
@@ -422,7 +422,9 @@
     document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
     adminNextAction = null;
   }
-  function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green') {
+  
+  // ★ 更新：加入 onCancel 參數與對應邏輯，讓取消按鈕也能觸發事件
+  function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green', onCancel = null) {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
     document.getElementById('confirmMessage').textContent = message;
@@ -430,15 +432,31 @@
     btn.textContent = btnText;
     btn.className = `btn ${btnColor}`;
     confirmCallback = callback;
+    confirmCancelCallback = onCancel;
     document.getElementById('confirmModal').style.display = 'flex';
   }
+  
   function closeConfirmModal() {
     document.getElementById('confirmModal').style.display = 'none';
+    // 若有點擊取消，則觸發取消回調
+    if (confirmCancelCallback) {
+        confirmCancelCallback();
+    }
     confirmCallback = null;
+    confirmCancelCallback = null;
   }
+  
   function executeConfirm() {
-    if (confirmCallback) confirmCallback();
-    closeConfirmModal();
+    if (confirmCallback) {
+        let cb = confirmCallback;
+        // 執行確認前，清空 callback 避免觸發 close 內的 cancel 邏輯
+        confirmCallback = null;
+        confirmCancelCallback = null; 
+        document.getElementById('confirmModal').style.display = 'none';
+        cb();
+    } else {
+        closeConfirmModal();
+    }
   }
 
   function triggerDownload(url) {
@@ -459,8 +477,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.33</span>`;
-        document.title = `${data.title} v2.9.33`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.39</span>`;
+        document.title = `${data.title} v2.9.39`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -471,12 +489,10 @@
           
           if(data.imageUrl) {
              let url = data.imageUrl.trim();
-             // 判斷是否為 Canva 設計連結
              if (url.includes('canva.com/design/')) {
                  let baseUrl = url.split('/view')[0] + '/view?embed';
                  contentHtml += `<iframe src="${baseUrl}" class="notice-img canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
              } else {
-                 // 一般雲端硬碟圖片或直接圖片連結
                  const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                  if(driveMatch && driveMatch[1]) {
                      url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
@@ -871,7 +887,6 @@
     setTimeout(() => { pwdInput.focus(); }, 50);
   }
 
-  // ★ 核心升級：將密碼發送至後端進行比對驗證
   function verifyAdmin() {
     const pwd = document.getElementById('adminPwd').value;
     if(!pwd) return showToast("請輸入密碼", "error");
@@ -890,7 +905,6 @@
             return;
         }
         
-        // 密碼驗證成功
         document.getElementById('adminPwdModal').style.display = 'none';
         
         if (typeof adminNextAction === 'function') {
@@ -1092,6 +1106,7 @@
 
   // ================== 進階設定區域 ==================
   function triggerResetDefaults() {
+    // ★ 隱藏選單，執行完畢或取消後會再度開啟
     document.getElementById('advancedMenuModal').style.display = 'none'; 
     showConfirm("⚠️ 極度危險操作", "清除「所有學生」紀錄無法復原，確定執行？", () => {
         showLoader(true);
@@ -1107,9 +1122,16 @@
           showToast("已恢復預設值！");
           document.getElementById('classSelect').value = '';
           document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
         })
-        .catch(err => { showLoader(false); showToast("重設失敗: " + err.message, "error"); });
-    }, "確認清除全部", "red");
+        .catch(err => { 
+            showLoader(false); showToast("重設失敗: " + err.message, "error"); 
+            document.getElementById('advancedMenuModal').style.display = 'flex';
+        });
+    }, "確認清除全部", "red", () => {
+        // ★ 當使用者點擊「取消」時觸發，回到進階選單
+        document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
   }
 
   function openNoticeSettings() {
@@ -1258,9 +1280,16 @@
               setTimeout(() => {
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
+              
+              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
           })
-          .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定下載", "blue");
+          .catch(err => { 
+              showLoader(false); showToast(err.message, "error"); 
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
+          });
+      }, "確定下載", "blue", () => {
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+      });
   }
 
   function generateClassLeave() {
@@ -1280,9 +1309,16 @@
               setTimeout(() => {
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
+              
+              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
           })
-          .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定下載", "blue");
+          .catch(err => { 
+              showLoader(false); showToast(err.message, "error"); 
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
+          });
+      }, "確定下載", "blue", () => {
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+      });
   }
 
   // ================== 分組資料下載 ==================
@@ -1302,9 +1338,16 @@
               setTimeout(() => {
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
+              
+              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
           })
-          .catch(err => { showLoader(false); showToast(err.message, "error"); });
-      }, "確定下載", "blue");
+          .catch(err => { 
+              showLoader(false); showToast(err.message, "error"); 
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
+          });
+      }, "確定下載", "blue", () => {
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+      });
   }
 
   // ================== 確定分組 ==================
@@ -1326,16 +1369,21 @@
           if (data.hasIncomplete) {
               showConfirm("⚠️ 人數不足警告", data.message, () => {
                   executeGroupAssignment();
-              }, "強制分組", "yellow");
+              }, "強制分組", "yellow", () => {
+                  if(advModal) advModal.style.display = 'flex'; // 取消時返回
+              });
           } else {
               showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
                   executeGroupAssignment();
-              }, "執行分組", "blue");
+              }, "執行分組", "blue", () => {
+                  if(advModal) advModal.style.display = 'flex'; // 取消時返回
+              });
           }
       })
       .catch(err => {
           showLoader(false);
           showToast("檢查失敗: " + err.message, "error");
+          if(advModal) advModal.style.display = 'flex'; // 失敗時返回
       });
   }
 
@@ -1352,10 +1400,12 @@
           if(data.error) throw new Error(data.error);
           showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
           fetchSignedList(); 
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 完成時返回
       })
       .catch(err => {
           showLoader(false);
           showToast("分組失敗: " + err.message, "error");
+          document.getElementById('advancedMenuModal').style.display = 'flex'; // 失敗時返回
       });
   }
 
