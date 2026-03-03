@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.32</title>
+<title>報名系統 v2.9.33</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.32</span>
+    報名系統 <span class="version-text">v2.9.33</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -307,7 +307,8 @@
 <div class="modal-overlay" id="adminPwdModal">
   <div class="modal">
     <h3 style="margin-top:0; color: var(--danger);">管理員驗證</h3>
-    <input type="password" id="adminPwd" placeholder="請輸入密碼" maxlength="6" inputmode="numeric">
+    <!-- 不再限制 maxlength，以配合任意長度密碼 -->
+    <input type="password" id="adminPwd" placeholder="請輸入密碼" inputmode="text">
     <div style="display: flex; gap: 10px;">
       <button class="btn outline-gray" style="flex:1;" onclick="closeAllModals()">取消</button>
       <button class="btn red" style="flex:1;" onclick="verifyAdmin()">確定</button>
@@ -384,17 +385,14 @@
   // ==========================================
   // ⚠️ 前端防護：禁止右鍵與常用開發者快捷鍵 (防君子不防小人)
   // ==========================================
-  document.addEventListener('contextmenu', event => event.preventDefault()); // 禁用右鍵
+  document.addEventListener('contextmenu', event => event.preventDefault()); 
   document.addEventListener('keydown', event => {
-      // 禁用 F12
       if (event.key === 'F12' || event.keyCode === 123) {
           event.preventDefault();
       }
-      // 禁用 Ctrl+Shift+I / J / C (開發者工具)
       if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) {
           event.preventDefault();
       }
-      // 禁用 Ctrl+U (檢視網頁原始碼)
       if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) {
           event.preventDefault();
       }
@@ -461,8 +459,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.32</span>`;
-        document.title = `${data.title} v2.9.32`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.33</span>`;
+        document.title = `${data.title} v2.9.33`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -864,7 +862,7 @@
       });
   }
 
-  // ================== 管理員、修改與刪除功能 ==================
+  // ================== 管理員、修改與刪除功能 (後端密碼驗證) ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     const pwdInput = document.getElementById('adminPwd');
@@ -873,17 +871,38 @@
     setTimeout(() => { pwdInput.focus(); }, 50);
   }
 
+  // ★ 核心升級：將密碼發送至後端進行比對驗證
   function verifyAdmin() {
     const pwd = document.getElementById('adminPwd').value;
-    if(pwd !== '000000') return showToast("密碼錯誤", "error");
+    if(!pwd) return showToast("請輸入密碼", "error");
     
-    document.getElementById('adminPwdModal').style.display = 'none';
-    
-    if (typeof adminNextAction === 'function') {
-        adminNextAction(); adminNextAction = null;
-    } else {
-        document.getElementById('advancedMenuModal').style.display = 'flex';
-    }
+    showLoader(true);
+    fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'verifyAdminPassword', payload: pwd })
+    })
+    .then(res => res.json())
+    .then(data => {
+        showLoader(false);
+        if(data.error || !data.ok) {
+            showToast(data.message || "密碼錯誤", "error");
+            return;
+        }
+        
+        // 密碼驗證成功
+        document.getElementById('adminPwdModal').style.display = 'none';
+        
+        if (typeof adminNextAction === 'function') {
+            adminNextAction(); adminNextAction = null;
+        } else {
+            document.getElementById('advancedMenuModal').style.display = 'flex';
+        }
+    })
+    .catch(err => {
+        showLoader(false);
+        showToast("驗證失敗: " + err.message, "error");
+    });
   }
 
   function handleEditSignedBtn(rowIndex, className, group) {
@@ -1288,8 +1307,7 @@
       }, "確定下載", "blue");
   }
 
-  // ================== 確定分組 (包含人數檢查流程) ==================
-  // ★ 檢查人數狀態再決定是否執行
+  // ================== 確定分組 ==================
   function checkAndConfirmGroups() {
       const advModal = document.getElementById('advancedMenuModal');
       if(advModal) advModal.style.display = 'none';
