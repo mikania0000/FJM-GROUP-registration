@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.29</title>
+<title>報名系統 v2.9.30</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -147,7 +147,7 @@
     position: sticky; top: 10px; z-index: 100;
     background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
     border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    padding: 16px; margin-bottom: 20px; border: 2px solid var(--primary);
+    padding: 16px; margin-top: 16px; margin-bottom: 20px; border: 2px solid var(--primary); /* 加入 margin-top: 16px 避免擁擠 */
     display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
   }
   .stats-badges { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.29</span>
+    報名系統 <span class="version-text">v2.9.30</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -443,8 +443,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.29</span>`;
-        document.title = `${data.title} v2.9.29`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.30</span>`;
+        document.title = `${data.title} v2.9.30`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
