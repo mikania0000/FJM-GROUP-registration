@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.31</title>
+<title>報名系統 v2.9.32</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -147,7 +147,7 @@
     position: sticky; top: 10px; z-index: 100;
     background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
     border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    padding: 16px; margin-top: 16px; margin-bottom: 20px; border: 2px solid var(--primary); /* 加入 margin-top: 16px 避免擁擠 */
+    padding: 16px; margin-top: 16px; margin-bottom: 20px; border: 2px solid var(--primary); 
     display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
   }
   .stats-badges { display: flex; gap: 12px; flex-wrap: wrap; }
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.31</span>
+    報名系統 <span class="version-text">v2.9.32</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -382,6 +382,25 @@
 
 <script>
   // ==========================================
+  // ⚠️ 前端防護：禁止右鍵與常用開發者快捷鍵 (防君子不防小人)
+  // ==========================================
+  document.addEventListener('contextmenu', event => event.preventDefault()); // 禁用右鍵
+  document.addEventListener('keydown', event => {
+      // 禁用 F12
+      if (event.key === 'F12' || event.keyCode === 123) {
+          event.preventDefault();
+      }
+      // 禁用 Ctrl+Shift+I / J / C (開發者工具)
+      if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) {
+          event.preventDefault();
+      }
+      // 禁用 Ctrl+U (檢視網頁原始碼)
+      if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) {
+          event.preventDefault();
+      }
+  });
+
+  // ==========================================
   // ⚠️ API 網址維持您提供的部署
   // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
@@ -442,8 +461,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.31</span>`;
-        document.title = `${data.title} v2.9.31`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.32</span>`;
+        document.title = `${data.title} v2.9.32`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
@@ -1270,7 +1289,7 @@
   }
 
   // ================== 確定分組 (包含人數檢查流程) ==================
-  // ★ 修改：從原本直接呼叫執行，改為先檢查人數狀態再決定是否執行
+  // ★ 檢查人數狀態再決定是否執行
   function checkAndConfirmGroups() {
       const advModal = document.getElementById('advancedMenuModal');
       if(advModal) advModal.style.display = 'none';
@@ -1287,12 +1306,10 @@
           if (data.error) throw new Error(data.error);
           
           if (data.hasIncomplete) {
-              // 如果有人數不足，跳出黃色警告視窗詢問是否繼續
               showConfirm("⚠️ 人數不足警告", data.message, () => {
                   executeGroupAssignment();
               }, "強制分組", "yellow");
           } else {
-              // 如果人數都足夠，跳出一般的確認視窗
               showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
                   executeGroupAssignment();
               }, "執行分組", "blue");
@@ -1304,7 +1321,6 @@
       });
   }
 
-  // 實際呼叫執行分組的 API
   function executeGroupAssignment() {
       showLoader(true);
       fetch(GAS_API_URL, {
