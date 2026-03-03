@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.39</title>
+<title>報名系統 v2.9.40</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.39</span>
+    報名系統 <span class="version-text">v2.9.40</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -407,7 +407,7 @@
   let sysClasses = []; 
   
   let confirmCallback = null;
-  let confirmCancelCallback = null; // ★ 新增：暫存取消時的回調函數
+  let confirmCancelCallback = null; // 暫存取消時的回調函數
   let adminNextAction = null; 
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
@@ -423,7 +423,7 @@
     adminNextAction = null;
   }
   
-  // ★ 更新：加入 onCancel 參數與對應邏輯，讓取消按鈕也能觸發事件
+  // 讓確認視窗也支援 Cancel 回調
   function showConfirm(title, message, callback, btnText = '確定', btnColor = 'green', onCancel = null) {
     document.getElementById('confirmTitle').textContent = title;
     document.getElementById('confirmTitle').style.color = (btnColor === 'red') ? 'var(--danger)' : (btnColor === 'yellow' ? 'var(--warning)' : (btnColor === 'pink' ? '#ec4899' : 'var(--primary)'));
@@ -438,10 +438,7 @@
   
   function closeConfirmModal() {
     document.getElementById('confirmModal').style.display = 'none';
-    // 若有點擊取消，則觸發取消回調
-    if (confirmCancelCallback) {
-        confirmCancelCallback();
-    }
+    if (confirmCancelCallback) confirmCancelCallback();
     confirmCallback = null;
     confirmCancelCallback = null;
   }
@@ -449,7 +446,6 @@
   function executeConfirm() {
     if (confirmCallback) {
         let cb = confirmCallback;
-        // 執行確認前，清空 callback 避免觸發 close 內的 cancel 邏輯
         confirmCallback = null;
         confirmCancelCallback = null; 
         document.getElementById('confirmModal').style.display = 'none';
@@ -469,55 +465,72 @@
       document.body.removeChild(a);
   }
 
-  // ================== 初始化載入 ==================
-  window.onload = () => {
-    showLoader(true);
-    fetch(`${GAS_API_URL}?action=getInitData&t=${Date.now()}`)
+  // ================== 初始化與背景更新 ==================
+  // ★ 建立專屬更新函數，讓設定儲存後可以靜默更新不刷新網頁
+  function fetchInitData(isSilent = false) {
+      if (!isSilent) showLoader(true);
+      fetch(`${GAS_API_URL}?action=getInitData&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
-        if(data.error) throw new Error(data.error);
-        
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.39</span>`;
-        document.title = `${data.title} v2.9.39`;
-        
-        sysConfig = data; 
-        sysClasses = data.classes || [];
-
-        if((data.notices && data.notices.length > 0) || data.imageUrl) {
-          document.getElementById('noticeCard').style.display = 'block';
-          let contentHtml = '';
+          if(data.error) throw new Error(data.error);
           
-          if(data.imageUrl) {
-             let url = data.imageUrl.trim();
-             if (url.includes('canva.com/design/')) {
-                 let baseUrl = url.split('/view')[0] + '/view?embed';
-                 contentHtml += `<iframe src="${baseUrl}" class="notice-img canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
-             } else {
-                 const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                 if(driveMatch && driveMatch[1]) {
-                     url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
-                 }
-                 contentHtml += `<img src="${url}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
-             }
-          }
-          if(data.notices) {
-             contentHtml += data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
-          }
-          document.getElementById('noticeContent').innerHTML = contentHtml;
-        }
+          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.40</span>`;
+          document.title = `${data.title} v2.9.40`;
+          
+          sysConfig = data; 
+          sysClasses = data.classes || [];
 
-        const select = document.getElementById('classSelect');
-        sysClasses.forEach(c => {
-          let opt = document.createElement('option');
-          opt.value = c; opt.text = c + " 班";
-          select.appendChild(opt);
-        });
-        
-        showLoader(false);
+          if((data.notices && data.notices.length > 0) || data.imageUrl) {
+            document.getElementById('noticeCard').style.display = 'block';
+            let contentHtml = '';
+            
+            if(data.imageUrl) {
+               let url = data.imageUrl.trim();
+               if (url.includes('canva.com/design/')) {
+                   let baseUrl = url.split('/view')[0] + '/view?embed';
+                   contentHtml += `<iframe src="${baseUrl}" class="notice-img canva-frame" allowfullscreen="allowfullscreen" allow="fullscreen"></iframe>`;
+               } else {
+                   const driveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                   if(driveMatch && driveMatch[1]) {
+                       url = `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+                   }
+                   contentHtml += `<img src="${url}" class="notice-img" alt="說明圖片" onerror="this.style.display='none'">`;
+               }
+            }
+            if(data.notices) {
+               contentHtml += data.notices.map(n => `<p style="margin: 6px 0;">${n}</p>`).join('');
+            }
+            document.getElementById('noticeContent').innerHTML = contentHtml;
+          } else {
+            document.getElementById('noticeCard').style.display = 'none';
+          }
+
+          const select = document.getElementById('classSelect');
+          if (select.options.length <= 1) {
+              sysClasses.forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c; opt.text = c + " 班";
+                select.appendChild(opt);
+              });
+          }
+          
+          if (!isSilent) showLoader(false);
+          
+          // 若背景更新時已選班級，同步更新名單與人數上限
+          if (isSilent && document.getElementById('classSelect').value) {
+              queryStudents();
+          }
       })
       .catch(err => {
-        showLoader(false); showToast("初始化失敗: " + err.message, "error");
+          if (!isSilent) {
+              showLoader(false); 
+              showToast("初始化失敗: " + err.message, "error");
+          }
       });
+  }
+
+  window.onload = () => {
+      fetchInitData(false);
   };
 
   // ================== 查詢班級 ==================
@@ -878,7 +891,7 @@
       });
   }
 
-  // ================== 管理員、修改與刪除功能 (後端密碼驗證) ==================
+  // ================== 管理員、修改與刪除功能 ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     const pwdInput = document.getElementById('adminPwd');
@@ -1106,7 +1119,6 @@
 
   // ================== 進階設定區域 ==================
   function triggerResetDefaults() {
-    // ★ 隱藏選單，執行完畢或取消後會再度開啟
     document.getElementById('advancedMenuModal').style.display = 'none'; 
     showConfirm("⚠️ 極度危險操作", "清除「所有學生」紀錄無法復原，確定執行？", () => {
         showLoader(true);
@@ -1129,18 +1141,14 @@
             document.getElementById('advancedMenuModal').style.display = 'flex';
         });
     }, "確認清除全部", "red", () => {
-        // ★ 當使用者點擊「取消」時觸發，回到進階選單
-        document.getElementById('advancedMenuModal').style.display = 'flex';
+        document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
     });
   }
 
   function openNoticeSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getNoticeSettings' })
-    })
+    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       showLoader(false);
@@ -1171,6 +1179,7 @@
     });
   }
 
+  // ★ 取消 Reload，改為靜默更新並返回表單
   function saveNoticeSettings() {
     const payload = [];
     document.querySelectorAll('#noticeFormContainer .notice-input').forEach((input) => {
@@ -1186,8 +1195,10 @@
     .then(data => {
       showLoader(false);
       if(data.error) throw new Error(data.error);
-      showToast("注意事項儲存成功，即將重新載入！");
-      setTimeout(() => window.location.reload(), 1500);
+      showToast("注意事項儲存成功！");
+      document.getElementById('noticeSettingsModal').style.display = 'none';
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+      fetchInitData(true); // 背景更新設定
     })
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
@@ -1195,10 +1206,7 @@
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getBasicSettings' })
-    })
+    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`)
     .then(res => res.json())
     .then(data => {
       showLoader(false);
@@ -1241,6 +1249,7 @@
     });
   }
 
+  // ★ 取消 Reload，改為靜默更新並返回表單
   function saveBasicSettings() {
     const payload = [];
     document.querySelectorAll('#settingsFormContainer .setting-input').forEach((input) => {
@@ -1256,8 +1265,10 @@
     .then(data => {
       showLoader(false);
       if(data.error) throw new Error(data.error);
-      showToast("設定儲存成功，即將重新載入！");
-      setTimeout(() => window.location.reload(), 1500);
+      showToast("設定儲存成功！");
+      document.getElementById('basicSettingsModal').style.display = 'none';
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+      fetchInitData(true); // 背景更新設定
     })
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
@@ -1462,8 +1473,14 @@
             });
             
             if(document.getElementById('classSelect').value) queryStudents(); 
+            
+            // ★ 新增：成功後返回進階選單
+            document.getElementById('crossClassModal').style.display = 'none';
+            document.getElementById('advancedMenuModal').style.display = 'flex';
         });
-    }, "確定組隊", "blue");
+    }, "確定組隊", "blue", () => {
+        // ★ 新增：跨班組隊按下取消後，返回原本的跨班選單，不需要退回進階選單
+    });
   }
 
   // 監聽密碼輸入框，按下 Enter 也可以驗證
