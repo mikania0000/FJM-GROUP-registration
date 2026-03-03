@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.30</title>
+<title>報名系統 v2.9.31</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.30</span>
+    報名系統 <span class="version-text">v2.9.31</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -324,11 +324,10 @@
       <button class="btn-adv btn-adv-blue" onclick="openBasicSettings()"><span style="font-size:28px;">📝</span>3. 基本設定</button>
       <button class="btn-adv btn-adv-green" onclick="generateOfficeLeave()"><span style="font-size:28px;">🏫</span>4. 學務處公假單</button>
       <button class="btn-adv btn-adv-teal" onclick="generateClassLeave()"><span style="font-size:28px;">📋</span>5. 班級公假單</button>
-      <button class="btn-adv btn-adv-purple" onclick="window.open('https://drive.google.com/drive/u/0/folders/1LahyXKfZDnOVvJ7Yw-abNJN04hKfLO6a','_blank')"><span style="font-size:28px;">📁</span>6. 雲端資料夾</button>
-      <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>7. 跨班組隊</button>
-      <button class="btn-adv btn-adv-pink" onclick="checkAndConfirmGroups()"><span style="font-size:28px;">🏷️</span>8. 確定分組</button>
-      <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>9. 分組資料</button>
-      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>10. 預備功能</button>
+      <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>6. 跨班組隊</button>
+      <button class="btn-adv btn-adv-pink" onclick="checkAndConfirmGroups()"><span style="font-size:28px;">🏷️</span>7. 確定分組</button>
+      <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>8. 分組資料</button>
+      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>9. 預備功能</button>
     </div>
     <button class="btn outline-gray" style="margin-top:25px; width: 100%; padding: 12px; font-size: 18px;" onclick="closeAllModals()">關閉選單</button>
   </div>
@@ -443,8 +442,8 @@
       .then(data => {
         if(data.error) throw new Error(data.error);
         
-        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.30</span>`;
-        document.title = `${data.title} v2.9.30`;
+        document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.31</span>`;
+        document.title = `${data.title} v2.9.31`;
         
         sysConfig = data; 
         sysClasses = data.classes || [];
