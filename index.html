@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.40</title>
+<title>報名系統 v2.9.41</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.40</span>
+    報名系統 <span class="version-text">v2.9.41</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -474,8 +474,8 @@
       .then(data => {
           if(data.error) throw new Error(data.error);
           
-          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.40</span>`;
-          document.title = `${data.title} v2.9.40`;
+          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.41</span>`;
+          document.title = `${data.title} v2.9.41`;
           
           sysConfig = data; 
           sysClasses = data.classes || [];
@@ -1148,48 +1148,9 @@
   function openNoticeSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`)
-    .then(res => res.json())
-    .then(data => {
-      showLoader(false);
-      if(data.error) throw new Error(data.error);
-      
-      const formContainer = document.getElementById('noticeFormContainer');
-      formContainer.innerHTML = '';
-      
-      for (let i = 0; i < 9; i++) {
-          const val = (data.data && data.data[i]) ? data.data[i][0] : '';
-          const div = document.createElement('div');
-          
-          if (i === 0) {
-              div.innerHTML = `
-                <label>第 ${i + 1} 項</label>
-                <textarea class="notice-input" rows="3" placeholder="留白即代表不顯示" 
-                          style="width: 100%; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-weight:bold; font-family: inherit; resize: vertical; margin-bottom: 10px;">${val}</textarea>`;
-          } else {
-              div.innerHTML = `<label>第 ${i + 1} 項</label><input type="text" class="notice-input" value="${val}" placeholder="留白即代表不顯示" />`;
-          }
-          formContainer.appendChild(div);
-      }
-      document.getElementById('noticeSettingsModal').style.display = 'flex';
-    })
-    .catch(err => {
-      showLoader(false); showToast("讀取失敗", "error");
-      document.getElementById('advancedMenuModal').style.display = 'flex';
-    });
-  }
-
-  // ★ 取消 Reload，改為靜默更新並返回表單
-  function saveNoticeSettings() {
-    const payload = [];
-    document.querySelectorAll('#noticeFormContainer .notice-input').forEach((input) => {
-        payload.push(input.value.trim());
-    });
-
-    showLoader(true);
-    fetch(GAS_API_URL, {
+    fetch(`${GAS_API_URL}?action=getNoticeSettings&t=${Date.now()}`, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'saveNoticeSettings', payload: payload })
+      body: JSON.stringify({ action: 'getNoticeSettings' })
     })
     .then(res => res.json())
     .then(data => {
@@ -1206,60 +1167,9 @@
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`)
-    .then(res => res.json())
-    .then(data => {
-      showLoader(false);
-      if(data.error) throw new Error(data.error);
-      
-      const formContainer = document.getElementById('settingsFormContainer');
-      formContainer.innerHTML = '';
-      
-      data.data.forEach((row, idx) => {
-          const label = row[0];
-          const val = row[1] || '';
-          if(!label) return; 
-          
-          let inputHtml = '';
-          if (label.includes('學年度')) {
-              inputHtml = `<select class="setting-input">`;
-              for(let i=110; i<=130; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
-              inputHtml += `</select>`;
-          } else if (label.includes('學期')) {
-              inputHtml = `<select class="setting-input"><option value="1" ${String(val)==='1'?'selected':''}>1</option><option value="2" ${String(val)==='2'?'selected':''}>2</option></select>`;
-          } else if (label.includes('報名方式')) {
-              inputHtml = `<select class="setting-input"><option value="個人" ${val==='個人'?'selected':''}>個人</option><option value="分組" ${val==='分組'?'selected':''}>分組</option></select>`;
-          } else if (label.includes('人數') || label.includes('組數') || label.includes('上限')) {
-              inputHtml = `<select class="setting-input">`;
-              for(let i=1; i<=300; i++) inputHtml += `<option value="${i}" ${Number(val)===i ? 'selected' : ''}>${i}</option>`;
-              inputHtml += `</select>`;
-          } else {
-              inputHtml = `<input type="text" class="setting-input" value="${val}" />`;
-          }
-          
-          const div = document.createElement('div');
-          div.innerHTML = `<label>${label}</label>${inputHtml}`;
-          formContainer.appendChild(div);
-      });
-      document.getElementById('basicSettingsModal').style.display = 'flex';
-    })
-    .catch(err => {
-      showLoader(false); showToast("讀取失敗", "error");
-      document.getElementById('advancedMenuModal').style.display = 'flex';
-    });
-  }
-
-  // ★ 取消 Reload，改為靜默更新並返回表單
-  function saveBasicSettings() {
-    const payload = [];
-    document.querySelectorAll('#settingsFormContainer .setting-input').forEach((input) => {
-        payload.push(input.value.trim());
-    });
-
-    showLoader(true);
-    fetch(GAS_API_URL, {
+    fetch(`${GAS_API_URL}?action=getBasicSettings&t=${Date.now()}`, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'saveBasicSettings', payload: payload })
+      body: JSON.stringify({ action: 'getBasicSettings' })
     })
     .then(res => res.json())
     .then(data => {
