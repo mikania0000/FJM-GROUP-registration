@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-<title>報名系統 v2.9.42</title>
+<title>報名系統 v2.9.43</title>
 <style>
   :root {
     --primary: #2563eb;       
@@ -252,7 +252,7 @@
 <div class="wrap">
   
   <div class="header-title" id="pageTitle">
-    報名系統 <span class="version-text">v2.9.42</span>
+    報名系統 <span class="version-text">v2.9.43</span>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -472,8 +472,8 @@
       .then(data => {
           if(data.error) throw new Error(data.error);
           
-          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.42</span>`;
-          document.title = `${data.title} v2.9.42`;
+          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.43</span>`;
+          document.title = `${data.title} v2.9.43`;
           
           sysConfig = data; 
           sysClasses = data.classes || [];
@@ -563,7 +563,9 @@
                     } else if (stu.F && String(stu.F).includes('正取')) {
                         status = 'main';
                     } else if (stu.F && String(stu.F).includes('備取')) {
-                        status = 'wait';
+                        // ★ 解析出是備取幾
+                        let match = String(stu.F).match(/備取(\d+)/);
+                        status = match ? 'wait' + match[1] : 'wait1';
                     } else {
                         status = 'main'; 
                     }
@@ -572,7 +574,8 @@
             return { ...stu, currentStatus: status, isCross: isCross, origStatus: status };
         });
 
-        sysConfig.classOriginalRegCount = currentClassStudents.filter(s => s.origStatus === 'main' || s.origStatus === 'wait').length;
+        // 修改原始註冊人數的計算邏輯，包含所有的備取 (wait1, wait2...)
+        sysConfig.classOriginalRegCount = currentClassStudents.filter(s => s.origStatus === 'main' || String(s.origStatus).startsWith('wait')).length;
 
         document.getElementById('listTitle').textContent = `${cls} 班級學生列表`;
         renderStudentList();
@@ -599,18 +602,25 @@
           `;
       } else {
           const mainCount = currentClassStudents.filter(s => s.currentStatus === 'main').length;
-          const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
           const limitMain = sysConfig.groupSize * sysConfig.mainGroups;
-          const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
           
-          container.innerHTML = `
+          let html = `
             <div class="stat-badge main">
               正取： <span class="stat-count" style="color: ${mainCount > limitMain ? 'red' : 'inherit'}">${mainCount} / ${limitMain}</span>
             </div>
-            <div class="stat-badge wait">
-              備取： <span class="stat-count" style="color: ${waitCount > limitWait ? 'red' : 'inherit'}">${waitCount} / ${limitWait}</span>
-            </div>
           `;
+
+          // ★ 動態產生所有備取的 Badge
+          for (let w = 1; w <= sysConfig.waitlistCount; w++) {
+              const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait' + w).length;
+              const limitWait = sysConfig.groupSize; // 每組備取上限就是 groupSize
+              html += `
+                <div class="stat-badge wait">
+                  備取${w}： <span class="stat-count" style="color: ${waitCount > limitWait ? 'red' : 'inherit'}">${waitCount} / ${limitWait}</span>
+                </div>
+              `;
+          }
+          container.innerHTML = html;
       }
       document.getElementById('statsBar').style.display = 'flex';
   }
@@ -636,11 +646,13 @@
                   showToast(`正取人數已達上限 (${limitMain}人)！`, 'error');
                   renderStudentList(); return;
               }
-          } else if (newValue === 'wait') {
-              const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait').length;
-              const limitWait = sysConfig.groupSize * sysConfig.waitlistCount;
+          } else if (newValue.startsWith('wait')) {
+              // ★ 動態判斷個別備取的人數是否超過上限
+              const wNum = newValue.replace('wait', '');
+              const waitCount = currentClassStudents.filter(s => s.currentStatus === newValue).length;
+              const limitWait = sysConfig.groupSize;
               if (waitCount >= limitWait) {
-                  showToast(`備取人數已達上限 (${limitWait}人)！`, 'error');
+                  showToast(`備取${wNum} 人數已達上限 (${limitWait}人)！`, 'error');
                   renderStudentList(); return;
               }
           }
@@ -657,7 +669,11 @@
 
     currentClassStudents.forEach(stu => {
       const div = document.createElement('div');
-      div.className = `stu-card status-${stu.currentStatus}`;
+      
+      // 給予對應的 CSS 樣式
+      let cardStatus = stu.currentStatus;
+      if (cardStatus.startsWith('wait')) cardStatus = 'wait';
+      div.className = `stu-card status-${cardStatus}`;
 
       let rightHtml = '';
       if (stu.isCross) {
@@ -665,14 +681,17 @@
       } else {
           let selClass = 'row-select';
           if(stu.currentStatus === 'main') selClass += ' sel-main';
-          if(stu.currentStatus === 'wait') selClass += ' sel-wait';
+          if(stu.currentStatus && String(stu.currentStatus).startsWith('wait')) selClass += ' sel-wait';
 
           let optionsHtml = `<option value="none" ${stu.currentStatus === 'none' ? 'selected' : ''}>不參加</option>`;
           if (sysConfig.regMode === '個人') {
               optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>參加</option>`;
           } else {
               optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>正取</option>`;
-              optionsHtml += `<option value="wait" ${stu.currentStatus === 'wait' ? 'selected' : ''}>備取</option>`;
+              // ★ 依據基本設定的「備取組數」，動態產生「備取1、備取2...」下拉選項
+              for (let w = 1; w <= sysConfig.waitlistCount; w++) {
+                  optionsHtml += `<option value="wait${w}" ${stu.currentStatus === 'wait'+w ? 'selected' : ''}>備取${w}</option>`;
+              }
           }
 
           rightHtml = `<select class="${selClass}" onchange="handleStatusChange(${stu.rowIndex}, this.value)">${optionsHtml}</select>`;
@@ -703,7 +722,11 @@
               else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
           } else {
               if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-正取` });
-              else if (stu.currentStatus === 'wait') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取1` });
+              else if (stu.currentStatus && String(stu.currentStatus).startsWith('wait')) {
+                  // ★ 根據使用者的選擇動態轉成「備取1、備取2...」存回 Google Sheets
+                  const wNum = stu.currentStatus.replace('wait', '');
+                  payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取${wNum}` });
+              }
               else payload.push({ rowIndex: stu.rowIndex, E: 0, F: '' }); 
           }
       });
@@ -1142,7 +1165,6 @@
     });
   }
 
-  // ★ 徹底修復：開啟注意事項設定 (產生表單)
   function openNoticeSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -1181,7 +1203,6 @@
     });
   }
 
-  // ★ 徹底修復：儲存注意事項
   function saveNoticeSettings() {
     const payload = [];
     document.querySelectorAll('#noticeFormContainer .notice-input').forEach((input) => {
@@ -1206,7 +1227,6 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ★ 徹底修復：開啟基本設定 (產生表單)
   function openBasicSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -1257,7 +1277,6 @@
     });
   }
 
-  // ★ 徹底修復：儲存基本設定
   function saveBasicSettings() {
     const payload = [];
     document.querySelectorAll('#settingsFormContainer .setting-input').forEach((input) => {
