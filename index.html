@@ -226,19 +226,19 @@
 </head>
 <body>
 
-<!-- ★ 新增：LINE 瀏覽器專屬阻擋畫面 -->
+<!-- ★ 新增：社群軟體內建瀏覽器專屬阻擋畫面 (涵蓋 LINE, FB, IG, Threads) -->
 <div id="lineWarning" style="display:none; position: fixed; inset: 0; background: #f8fafc; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center;">
   <div style="font-size: 60px; margin-bottom: 20px;">🛑</div>
-  <h2 style="color: var(--danger); margin-top: 0; font-size: 24px;">無法在 LINE 內登入</h2>
-  <p style="font-size: 18px; font-weight: bold; color: var(--text-main); line-height: 1.5;">
-    因為 Google 的安全政策限制，<br>LINE 內建瀏覽器不支援 Google 登入。
+  <h2 style="color: var(--danger); margin-top: 0; font-size: 24px;">無法在應用程式內登入</h2>
+  <p style="font-size: 17px; font-weight: bold; color: var(--text-main); line-height: 1.6;">
+    為了保護您的帳號安全，<br>LINE / FB / IG 等內建瀏覽器<br>會阻擋 Google 的登入驗證。
   </p>
   <div style="background: white; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; margin-top: 20px; width: 100%; max-width: 350px;">
     <p style="margin: 0; font-size: 16px; color: var(--primary); font-weight: bold;">💡 解決方法：</p>
     <p style="margin: 10px 0 0 0; font-size: 15px; color: var(--text-muted); text-align: left; line-height: 1.6;">
       1. 點擊畫面右上角（或右下角）的 <strong>⋮</strong> 或 <strong>⋯</strong> 按鈕。<br>
       2. 選擇 <strong>「以預設瀏覽器開啟」</strong><br>
-      　(或 Safari / Chrome 開啟)。
+      　(或以 Safari / Chrome 開啟)。
     </p>
   </div>
 </div>
@@ -429,8 +429,9 @@
 </div>
 
 <script>
-  // ★ 新增：第一時間偵測是否為 LINE 內建瀏覽器
-  if (/Line/i.test(navigator.userAgent)) {
+  // ★ 更新：第一時間偵測是否為社群軟體內建瀏覽器 (涵蓋 Line, Facebook, Instagram 等)
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  if (/Line|Instagram|FBAN|FBAV|Threads/i.test(ua)) {
       document.getElementById('lineWarning').style.display = 'flex';
   }
 
@@ -486,40 +487,61 @@
     }
   }
 
-  // Google 登入按鈕的回呼函數
-  function handleCredentialResponse(response) {
-    const payload = decodeJwtResponse(response.credential);
-    const email = payload.email;
-    
-    showLoader(true);
-    fetch(GAS_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'verifyLogin', payload: email })
-    })
-    .then(res => res.json())
-    .then(data => {
-        showLoader(false);
-        if (data.ok) {
-            localStorage.setItem('fjm_logged_in_email', email);
-            successLogin();
-        } else {
-            showToast(data.message || "此帳號無權限登入", "error");
-        }
-    })
-    .catch(err => {
-        showLoader(false);
-        showToast("登入驗證失敗", "error");
-    });
+  // ★ 更新：修復 Base64 JWT 憑證在手機瀏覽器上的致命 Crash 問題
+  function decodeJwtResponse(token) {
+    try {
+      let base64Url = token.split('.')[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      // 補齊 padding 以防止 Safari 的 atob 函數當機
+      const pad = base64.length % 4;
+      if (pad) {
+        if (pad === 1) throw new Error("無效的 Base64 長度");
+        base64 += new Array(5 - pad).join('=');
+      }
+      let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      console.error("憑證解析錯誤:", e);
+      return null;
+    }
   }
 
-  function decodeJwtResponse(token) {
-    let base64Url = token.split('.')[1];
-    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
+  // ★ 更新：加入錯誤捕捉，如果當掉會跳出警告而不是變成一片死白
+  function handleCredentialResponse(response) {
+    try {
+      const payload = decodeJwtResponse(response.credential);
+      if (!payload || !payload.email) {
+          alert("無法讀取您的 Google 憑證，請試著換一個瀏覽器 (建議使用原生的 Chrome 或 Safari)！");
+          return;
+      }
+      const email = payload.email;
+      
+      showLoader(true);
+      fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'verifyLogin', payload: email })
+      })
+      .then(res => res.json())
+      .then(data => {
+          showLoader(false);
+          if (data.ok) {
+              try { localStorage.setItem('fjm_logged_in_email', email); } catch(e){}
+              successLogin();
+          } else {
+              showToast(data.message || "此帳號無權限登入", "error");
+          }
+      })
+      .catch(err => {
+          showLoader(false);
+          alert("網路連線錯誤或遭到阻擋：" + err.message);
+      });
+    } catch (err) {
+      showLoader(false);
+      alert("系統發生未知的處理錯誤：" + err.message);
+    }
   }
 
   function successLogin() {
