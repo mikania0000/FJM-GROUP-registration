@@ -222,24 +222,34 @@
   /* 帳號管理清單樣式 */
   .account-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #f8fafc; }
   .account-input { flex: 1; padding: 8px !important; margin: 0 !important; border: 1px solid #cbd5e1 !important; text-align: left !important; font-size: 15px !important;}
+
+  /* ★ 新增：按鈕樣式 - 用於複製網址 */
+  .btn-copy {
+    background: white; border: 2px solid var(--primary); color: var(--primary);
+    padding: 10px 20px; border-radius: 12px; font-size: 16px; font-weight: bold;
+    cursor: pointer; margin-top: 15px; width: 100%; transition: 0.2s;
+  }
+  .btn-copy:active { transform: scale(0.95); background: var(--primary-light); }
 </style>
 </head>
 <body>
 
-<!-- ★ 新增：社群軟體內建瀏覽器專屬阻擋畫面 (涵蓋 LINE, FB, IG, Threads) -->
+<!-- ★ 修改：自動跳轉的社群軟體專屬阻擋畫面 -->
 <div id="lineWarning" style="display:none; position: fixed; inset: 0; background: #f8fafc; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center;">
-  <div style="font-size: 60px; margin-bottom: 20px;">🛑</div>
+  <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
   <h2 style="color: var(--danger); margin-top: 0; font-size: 24px;">無法在應用程式內登入</h2>
   <p style="font-size: 17px; font-weight: bold; color: var(--text-main); line-height: 1.6;">
-    為了保護您的帳號安全，<br>LINE / FB / IG 等內建瀏覽器<br>會阻擋 Google 的登入驗證。
+    為了保護您的帳號安全，<br>Google 登入不支援在內建瀏覽器中執行。<br><br>系統正嘗試為您開啟外部瀏覽器...
   </p>
   <div style="background: white; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; margin-top: 20px; width: 100%; max-width: 350px;">
-    <p style="margin: 0; font-size: 16px; color: var(--primary); font-weight: bold;">💡 解決方法：</p>
+    <p style="margin: 0; font-size: 16px; color: var(--primary); font-weight: bold;">若無反應，請嘗試以下方法：</p>
     <p style="margin: 10px 0 0 0; font-size: 15px; color: var(--text-muted); text-align: left; line-height: 1.6;">
-      1. 點擊畫面右上角（或右下角）的 <strong>⋮</strong> 或 <strong>⋯</strong> 按鈕。<br>
+      1. 點擊畫面右上角的 <strong>⋮</strong> 或 <strong>⋯</strong><br>
       2. 選擇 <strong>「以預設瀏覽器開啟」</strong><br>
-      　(或以 Safari / Chrome 開啟)。
+      　(或以 Safari / Chrome 開啟)。<br>
+      3. 或者，點擊下方按鈕複製網址：
     </p>
+    <button class="btn-copy" id="btnCopyUrl">🔗 複製網址去瀏覽器貼上</button>
   </div>
 </div>
 
@@ -429,10 +439,34 @@
 </div>
 
 <script>
-  // ★ 更新：第一時間偵測是否為社群軟體內建瀏覽器 (涵蓋 Line, Facebook, Instagram 等)
+  // ★ 更新：LINE 自動跳轉與防呆機制
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   if (/Line|Instagram|FBAN|FBAV|Threads/i.test(ua)) {
-      document.getElementById('lineWarning').style.display = 'flex';
+      // 檢查網址是否已經包含跳轉參數
+      if (window.location.search.indexOf('openExternalBrowser=1') === -1) {
+          // 如果沒有，加上參數並重新導向，這會觸發 LINE 開啟外部瀏覽器
+          const separator = window.location.href.indexOf('?') === -1 ? '?' : '&';
+          window.location.href = window.location.href + separator + 'openExternalBrowser=1';
+      } else {
+          // 如果已經加上參數卻還是在內建瀏覽器裡（例如 iOS 有時會擋住），則顯示防呆畫面讓使用者複製網址
+          document.getElementById('lineWarning').style.display = 'flex';
+          
+          document.getElementById('btnCopyUrl').addEventListener('click', () => {
+              const tempInput = document.createElement('input');
+              // 複製時把參數拿掉，維持網址乾淨
+              tempInput.value = window.location.href.replace(/[?&]openExternalBrowser=1/, '');
+              document.body.appendChild(tempInput);
+              tempInput.select();
+              document.execCommand('copy');
+              document.body.removeChild(tempInput);
+              
+              const btn = document.getElementById('btnCopyUrl');
+              btn.textContent = '✅ 已複製！請去 Chrome 貼上';
+              btn.style.background = 'var(--success)';
+              btn.style.color = 'white';
+              btn.style.borderColor = 'var(--success)';
+          });
+      }
   }
 
   // ==========================================
@@ -461,6 +495,11 @@
 
   // ================== Google 登入邏輯 ==================
   function checkLocalLogin() {
+    // 若在內建瀏覽器，不執行登入以免報錯
+    if (/Line|Instagram|FBAN|FBAV|Threads/i.test(ua) && window.location.search.indexOf('openExternalBrowser=1') !== -1) {
+        return;
+    }
+
     const savedEmail = localStorage.getItem('fjm_logged_in_email');
     if (savedEmail) {
       // 靜默驗證本地端 Email
@@ -487,7 +526,7 @@
     }
   }
 
-  // ★ 更新：修復 Base64 JWT 憑證在手機瀏覽器上的致命 Crash 問題
+  // ★ 修復 Base64 JWT 憑證在手機瀏覽器上的致命 Crash 問題
   function decodeJwtResponse(token) {
     try {
       let base64Url = token.split('.')[1];
@@ -508,7 +547,7 @@
     }
   }
 
-  // ★ 更新：加入錯誤捕捉，如果當掉會跳出警告而不是變成一片死白
+  // ★ 加入錯誤捕捉，如果當掉會跳出警告而不是變成一片死白
   function handleCredentialResponse(response) {
     try {
       const payload = decodeJwtResponse(response.credential);
@@ -1439,7 +1478,7 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== ★ 新增：帳號管理 ==================
+  // ================== ★ 帳號管理 ==================
   function openAccountSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
