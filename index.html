@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
 <title>報名系統 v2.9.43</title>
+<!-- ★ 載入 Google 登入庫 -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --primary: #2563eb;       
@@ -31,29 +33,40 @@
     font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
     padding-bottom: 40px; 
   }
+
+  /* ★ 登入畫面樣式 */
+  #loginOverlay {
+    position: fixed; inset: 0; background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+    z-index: 99999; display: flex; justify-content: center; align-items: center; flex-direction: column;
+  }
+  .login-card {
+    background: white; padding: 40px; border-radius: 20px; box-shadow: var(--shadow-lg);
+    text-align: center; max-width: 400px; width: 90%;
+  }
+  .login-card h2 { margin-top: 0; color: var(--primary); font-size: 28px;}
+  .login-card p { color: var(--text-muted); font-weight: bold; margin-bottom: 25px;}
   
-  .wrap { max-width: 800px; margin: 20px auto; padding: 0 16px; }
+  .wrap { max-width: 800px; margin: 20px auto; padding: 0 16px; display: none; /* 預設隱藏主內容 */ }
 
   .header-title {
     font-size: 32px; font-weight: 900; text-align: center; margin-bottom: 20px;
     background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: #fff;
     padding: 20px; border-radius: 16px; box-shadow: var(--shadow-md);
-    letter-spacing: 2px;
+    letter-spacing: 2px; position: relative;
   }
+  
+  .logout-btn {
+    position: absolute; right: 15px; top: 15px; background: rgba(255,255,255,0.2); border: 1px solid white;
+    color: white; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,0.4); }
 
-  .version-text {
-    font-size: 16px;
-    font-weight: normal;
-    opacity: 0.8;
-    margin-left: 8px;
-    letter-spacing: normal;
-  }
+  .version-text { font-size: 16px; font-weight: normal; opacity: 0.8; margin-left: 8px; letter-spacing: normal; }
 
   .toast {
     position: fixed; left: 50%; top: 20px; transform: translateX(-50%);
     color: #fff; padding: 14px 28px; border-radius: 999px; box-shadow: var(--shadow-lg);
-    z-index: 9999;
-    display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
+    z-index: 100000; display: none; font-weight: 800; font-size: 16px; white-space: nowrap;
   }
   .toast.show { display: block; animation: popDown 0.3s ease forwards; }
   @keyframes popDown { from { top: -20px; opacity: 0; } to { top: 20px; opacity: 1; } }
@@ -63,8 +76,7 @@
 
   #loader {
     position: fixed; inset: 0; background: rgba(255,255,255,0.85); 
-    z-index: 9998; 
-    display: none; justify-content: center; align-items: center; flex-direction: column;
+    z-index: 99998; display: none; justify-content: center; align-items: center; flex-direction: column;
   }
   .spinner {
     width: 50px; height: 50px; border: 5px solid var(--primary-light);
@@ -108,39 +120,12 @@
   }
 
   .notice-wrapper { display: flow-root; }
-  
-  .notice-img { 
-    float: right; 
-    max-width: 250px; 
-    width: 40%; 
-    margin: 5px 0 15px 20px; 
-    border-radius: 10px; 
-    box-shadow: var(--shadow-md); 
-    border: 3px solid #a7f3d0; 
-    object-fit: cover; 
-    background: #fff; 
-  }
-  
-  .notice-img.canva-frame {
-    border: none;
-    background: #0e1318; 
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-    min-height: 450px; 
-    height: auto;
-    width: 100%;
-    max-width: 320px;
-    border-radius: 12px;
-  }
+  .notice-img { float: right; max-width: 250px; width: 40%; margin: 5px 0 15px 20px; border-radius: 10px; box-shadow: var(--shadow-md); border: 3px solid #a7f3d0; object-fit: cover; background: #fff; }
+  .notice-img.canva-frame { border: none; background: #0e1318; box-shadow: 0 8px 16px rgba(0,0,0,0.15); min-height: 450px; height: auto; width: 100%; max-width: 320px; border-radius: 12px; }
 
   @media (max-width: 768px) {
     .notice-img { max-width: 140px; width: 45%; margin: 5px 0 5px 12px; }
-    .notice-img.canva-frame {
-      float: none;
-      width: 100%;
-      max-width: 100%;
-      margin: 15px 0;
-      min-height: 400px;
-    }
+    .notice-img.canva-frame { float: none; width: 100%; max-width: 100%; margin: 15px 0; min-height: 400px; }
   }
 
   .sticky-stats {
@@ -192,16 +177,11 @@
   .tag.primary { background: var(--primary); }
   .tag.gray { background: #e2e8f0; color: transparent; } 
   
-  .tag.group-color-0 { background: #8b5cf6; } 
-  .tag.group-color-1 { background: #ec4899; } 
-  .tag.group-color-2 { background: #3b82f6; } 
-  .tag.group-color-3 { background: #f97316; } 
-  .tag.group-color-4 { background: #14b8a6; } 
-  .tag.group-color-5 { background: #eab308; } 
-  .tag.group-color-6 { background: #ef4444; } 
-  .tag.group-color-7 { background: #06b6d4; } 
-  .tag.group-color-8 { background: #10b981; } 
-  .tag.group-color-9 { background: #6366f1; } 
+  .tag.group-color-0 { background: #8b5cf6; } .tag.group-color-1 { background: #ec4899; } 
+  .tag.group-color-2 { background: #3b82f6; } .tag.group-color-3 { background: #f97316; } 
+  .tag.group-color-4 { background: #14b8a6; } .tag.group-color-5 { background: #eab308; } 
+  .tag.group-color-6 { background: #ef4444; } .tag.group-color-7 { background: #06b6d4; } 
+  .tag.group-color-8 { background: #10b981; } .tag.group-color-9 { background: #6366f1; } 
 
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -215,9 +195,7 @@
   .modal-large { max-width: 600px; }
   .modal input { width: 100%; padding: 12px; margin: 10px 0 20px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; font-weight: bold; text-align: center; }
 
-  #confirmModal, #adminPwdModal {
-    z-index: 2000;
-  }
+  #confirmModal, #adminPwdModal { z-index: 2000; }
 
   .adv-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
   @media (max-width: 480px) { .adv-grid { grid-template-columns: 1fr; } }
@@ -231,6 +209,7 @@
   .btn-adv-orange { background: linear-gradient(135deg, #f59e0b, #b45309); }
   .btn-adv-slate { background: linear-gradient(135deg, #475569, #1e293b); }
   .btn-adv-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
+  .btn-adv-indigo { background: linear-gradient(135deg, #4f46e5, #312e81); } /* 帳號管理 */
   .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
   
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
@@ -239,9 +218,38 @@
   .settings-form input:focus, .settings-form select:focus, .settings-form textarea:focus { border-color: var(--primary); outline:none;}
   .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
   .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
+  
+  /* 帳號管理清單樣式 */
+  .account-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #f8fafc; }
+  .account-input { flex: 1; padding: 8px !important; margin: 0 !important; border: 1px solid #cbd5e1 !important; text-align: left !important; font-size: 15px !important;}
 </style>
 </head>
 <body>
+
+<!-- ★ 登入畫面 -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>報名系統管理員登入</h2>
+    <p>請使用授權的 Google 帳號進行登入</p>
+    <div style="display: flex; justify-content: center; margin-top: 20px;">
+      <div id="g_id_onload"
+         data-client_id="553016940521-araovlp30ctbqn6um5rr49q3es5jm4jg.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left">
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="loader">
   <div class="spinner"></div>
@@ -249,10 +257,12 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<div class="wrap">
+<!-- 主內容區 (預設隱藏，登入後顯示) -->
+<div class="wrap" id="mainAppWrap">
   
   <div class="header-title" id="pageTitle">
     報名系統 <span class="version-text">v2.9.43</span>
+    <button class="logout-btn" onclick="logout()">登出帳號</button>
   </div>
 
   <div class="card" id="noticeCard" style="background:#ecfdf5; border:2px solid #a7f3d0; display:none;">
@@ -307,7 +317,7 @@
 <div class="modal-overlay" id="adminPwdModal">
   <div class="modal">
     <h3 style="margin-top:0; color: var(--danger);">管理員驗證</h3>
-    <input type="password" id="adminPwd" placeholder="請輸入密碼" inputmode="text">
+    <input type="password" id="adminPwd" placeholder="請輸入設定的數字密碼" inputmode="text">
     <div style="display: flex; gap: 10px;">
       <button class="btn outline-gray" style="flex:1;" onclick="closeAllModals()">取消</button>
       <button class="btn red" style="flex:1;" onclick="verifyAdmin()">確定</button>
@@ -327,7 +337,8 @@
       <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>6. 跨班組隊</button>
       <button class="btn-adv btn-adv-pink" onclick="checkAndConfirmGroups()"><span style="font-size:28px;">🏷️</span>7. 確定分組</button>
       <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>8. 分組資料</button>
-      <button class="btn-adv btn-adv-gray"><span style="font-size:24px;">🔒</span>9. 預備功能</button>
+      <!-- ★ 新增帳號管理按鈕 -->
+      <button class="btn-adv btn-adv-indigo" onclick="openAccountSettings()"><span style="font-size:24px;">🔑</span>9. 帳號管理</button>
     </div>
     <button class="btn outline-gray" style="margin-top:25px; width: 100%; padding: 12px; font-size: 18px;" onclick="closeAllModals()">關閉選單</button>
   </div>
@@ -351,6 +362,26 @@
     <div style="display: flex; gap: 10px; margin-top: 20px;">
       <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('noticeSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
       <button class="btn yellow" style="flex:1;" onclick="saveNoticeSettings()">儲存設定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ★ 新增：帳號管理設定 Modal -->
+<div class="modal-overlay" id="accountSettingsModal">
+  <div class="modal modal-large">
+    <h3 style="margin-top:0; color: #4f46e5;">🔑 帳號管理 (白名單)</h3>
+    <p style="font-size:13px; color:var(--text-muted); text-align:left; margin-bottom:10px;">
+      * 可輸入完整信箱 (例: test@gmail.com)<br>
+      * 或輸入網域開放全校 (例: @fjm.kh.edu.tw)
+    </p>
+    <div style="text-align: right; margin-bottom: 10px;">
+       <button class="btn outline" style="padding: 6px 12px; font-size:14px; border-color:#4f46e5; color:#4f46e5;" onclick="addAccountRow()">+ 新增帳號</button>
+    </div>
+    <div class="settings-form" id="accountFormContainer" style="max-height: 40vh;"></div>
+    
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('accountSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
+      <button class="btn" style="flex:1; background:#4f46e5;" onclick="saveAccountSettings()">儲存白名單</button>
     </div>
   </div>
 </div>
@@ -382,19 +413,13 @@
 
 <script>
   // ==========================================
-  // ⚠️ 前端防護：禁止右鍵與常用開發者快捷鍵
+  // ⚠️ 前端防護
   // ==========================================
   document.addEventListener('contextmenu', event => event.preventDefault()); 
   document.addEventListener('keydown', event => {
-      if (event.key === 'F12' || event.keyCode === 123) {
-          event.preventDefault();
-      }
-      if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) {
-          event.preventDefault();
-      }
-      if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) {
-          event.preventDefault();
-      }
+      if (event.key === 'F12' || event.keyCode === 123) event.preventDefault();
+      if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.key === 'J' || event.key === 'j' || event.key === 'C' || event.key === 'c')) event.preventDefault();
+      if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) event.preventDefault();
   });
 
   // ==========================================
@@ -410,6 +435,86 @@
   let confirmCancelCallback = null; 
   let adminNextAction = null; 
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
+
+  // ================== Google 登入邏輯 ==================
+  function checkLocalLogin() {
+    const savedEmail = localStorage.getItem('fjm_logged_in_email');
+    if (savedEmail) {
+      // 靜默驗證本地端 Email
+      showLoader(true);
+      fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'verifyLogin', payload: savedEmail })
+      })
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        if (data.ok) {
+          successLogin();
+        } else {
+          localStorage.removeItem('fjm_logged_in_email');
+          showToast(data.message || "登入逾期或權限變更，請重新登入", "error");
+        }
+      })
+      .catch(err => {
+         showLoader(false);
+         showToast("連線錯誤，請重試", "error");
+      });
+    }
+  }
+
+  // Google 登入按鈕的回呼函數
+  function handleCredentialResponse(response) {
+    const payload = decodeJwtResponse(response.credential);
+    const email = payload.email;
+    
+    showLoader(true);
+    fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'verifyLogin', payload: email })
+    })
+    .then(res => res.json())
+    .then(data => {
+        showLoader(false);
+        if (data.ok) {
+            localStorage.setItem('fjm_logged_in_email', email);
+            successLogin();
+        } else {
+            showToast(data.message || "此帳號無權限登入", "error");
+        }
+    })
+    .catch(err => {
+        showLoader(false);
+        showToast("登入驗證失敗", "error");
+    });
+  }
+
+  function decodeJwtResponse(token) {
+    let base64Url = token.split('.')[1];
+    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  }
+
+  function successLogin() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainAppWrap').style.display = 'block';
+    fetchInitData(false);
+  }
+
+  function logout() {
+    localStorage.removeItem('fjm_logged_in_email');
+    document.getElementById('mainAppWrap').style.display = 'none';
+    document.getElementById('loginOverlay').style.display = 'flex';
+  }
+
+  window.onload = () => {
+      checkLocalLogin();
+  };
 
   // ================== UI 輔助 ==================
   function showLoader(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
@@ -472,7 +577,7 @@
       .then(data => {
           if(data.error) throw new Error(data.error);
           
-          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.43</span>`;
+          document.getElementById('pageTitle').innerHTML = `${data.title} <span class="version-text">v2.9.43</span> <button class="logout-btn" onclick="logout()">登出帳號</button>`;
           document.title = `${data.title} v2.9.43`;
           
           sysConfig = data; 
@@ -526,10 +631,6 @@
       });
   }
 
-  window.onload = () => {
-      fetchInitData(false);
-  };
-
   // ================== 查詢班級 ==================
   function queryStudents() {
     const cls = document.getElementById('classSelect').value;
@@ -563,7 +664,6 @@
                     } else if (stu.F && String(stu.F).includes('正取')) {
                         status = 'main';
                     } else if (stu.F && String(stu.F).includes('備取')) {
-                        // ★ 解析出是備取幾
                         let match = String(stu.F).match(/備取(\d+)/);
                         status = match ? 'wait' + match[1] : 'wait1';
                     } else {
@@ -574,7 +674,6 @@
             return { ...stu, currentStatus: status, isCross: isCross, origStatus: status };
         });
 
-        // 修改原始註冊人數的計算邏輯，包含所有的備取 (wait1, wait2...)
         sysConfig.classOriginalRegCount = currentClassStudents.filter(s => s.origStatus === 'main' || String(s.origStatus).startsWith('wait')).length;
 
         document.getElementById('listTitle').textContent = `${cls} 班級學生列表`;
@@ -610,10 +709,9 @@
             </div>
           `;
 
-          // ★ 動態產生所有備取的 Badge
           for (let w = 1; w <= sysConfig.waitlistCount; w++) {
               const waitCount = currentClassStudents.filter(s => s.currentStatus === 'wait' + w).length;
-              const limitWait = sysConfig.groupSize; // 每組備取上限就是 groupSize
+              const limitWait = sysConfig.groupSize; 
               html += `
                 <div class="stat-badge wait">
                   備取${w}： <span class="stat-count" style="color: ${waitCount > limitWait ? 'red' : 'inherit'}">${waitCount} / ${limitWait}</span>
@@ -647,7 +745,6 @@
                   renderStudentList(); return;
               }
           } else if (newValue.startsWith('wait')) {
-              // ★ 動態判斷個別備取的人數是否超過上限
               const wNum = newValue.replace('wait', '');
               const waitCount = currentClassStudents.filter(s => s.currentStatus === newValue).length;
               const limitWait = sysConfig.groupSize;
@@ -670,7 +767,6 @@
     currentClassStudents.forEach(stu => {
       const div = document.createElement('div');
       
-      // 給予對應的 CSS 樣式
       let cardStatus = stu.currentStatus;
       if (cardStatus.startsWith('wait')) cardStatus = 'wait';
       div.className = `stu-card status-${cardStatus}`;
@@ -688,7 +784,6 @@
               optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>參加</option>`;
           } else {
               optionsHtml += `<option value="main" ${stu.currentStatus === 'main' ? 'selected' : ''}>正取</option>`;
-              // ★ 依據基本設定的「備取組數」，動態產生「備取1、備取2...」下拉選項
               for (let w = 1; w <= sysConfig.waitlistCount; w++) {
                   optionsHtml += `<option value="wait${w}" ${stu.currentStatus === 'wait'+w ? 'selected' : ''}>備取${w}</option>`;
               }
@@ -723,7 +818,6 @@
           } else {
               if (stu.currentStatus === 'main') payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-正取` });
               else if (stu.currentStatus && String(stu.currentStatus).startsWith('wait')) {
-                  // ★ 根據使用者的選擇動態轉成「備取1、備取2...」存回 Google Sheets
                   const wNum = stu.currentStatus.replace('wait', '');
                   payload.push({ rowIndex: stu.rowIndex, E: 1, F: `${cls}-備取${wNum}` });
               }
@@ -1154,14 +1248,14 @@
           showToast("已恢復預設值！");
           document.getElementById('classSelect').value = '';
           document.getElementById('studentListContainer').innerHTML = `<div style="text-align:center; padding: 40px; color:#64748b; font-weight:bold;">請重新查詢班級</div>`;
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
         })
         .catch(err => { 
             showLoader(false); showToast("重設失敗: " + err.message, "error"); 
             document.getElementById('advancedMenuModal').style.display = 'flex';
         });
     }, "確認清除全部", "red", () => {
-        document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+        document.getElementById('advancedMenuModal').style.display = 'flex'; 
     });
   }
 
@@ -1222,7 +1316,7 @@
       showToast("注意事項儲存成功！");
       document.getElementById('noticeSettingsModal').style.display = 'none';
       document.getElementById('advancedMenuModal').style.display = 'flex';
-      fetchInitData(true); // 背景更新設定
+      fetchInitData(true); 
     })
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
@@ -1296,7 +1390,79 @@
       showToast("設定儲存成功！");
       document.getElementById('basicSettingsModal').style.display = 'none';
       document.getElementById('advancedMenuModal').style.display = 'flex';
-      fetchInitData(true); // 背景更新設定
+      fetchInitData(true); 
+    })
+    .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
+  }
+
+  // ================== ★ 新增：帳號管理白名單 ==================
+  function openAccountSettings() {
+    document.getElementById('advancedMenuModal').style.display = 'none';
+    showLoader(true);
+    
+    fetch(GAS_API_URL, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getWhitelist' })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      
+      const container = document.getElementById('accountFormContainer');
+      container.innerHTML = '';
+      
+      if (data.data && data.data.length > 0) {
+        data.data.forEach(acc => addAccountRow(acc));
+      } else {
+        addAccountRow(''); // 若為空，給一列空的
+      }
+      
+      document.getElementById('accountSettingsModal').style.display = 'flex';
+    })
+    .catch(err => {
+      showLoader(false); showToast("讀取帳號失敗", "error");
+      document.getElementById('advancedMenuModal').style.display = 'flex';
+    });
+  }
+
+  function addAccountRow(value = '') {
+    const container = document.getElementById('accountFormContainer');
+    const div = document.createElement('div');
+    div.className = 'account-row';
+    div.innerHTML = `
+      <input type="text" class="account-input" value="${value}" placeholder="填寫 Google 信箱或 @網域" />
+      <button class="btn red" style="padding: 6px 10px; font-size:14px; border-radius:6px; margin-left:8px;" onclick="this.parentElement.remove()">刪除</button>
+    `;
+    container.appendChild(div);
+  }
+
+  function saveAccountSettings() {
+    const payload = [];
+    document.querySelectorAll('#accountFormContainer .account-input').forEach((input) => {
+        const val = input.value.trim();
+        if (val !== '') payload.push(val);
+    });
+
+    if(payload.length === 0) {
+      showToast("至少需保留一組帳號", "error");
+      return;
+    }
+
+    showLoader(true);
+    fetch(GAS_API_URL, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'saveWhitelist', payload: payload })
+    })
+    .then(res => res.json())
+    .then(data => {
+      showLoader(false);
+      if(data.error) throw new Error(data.error);
+      showToast("白名單儲存成功！");
+      document.getElementById('accountSettingsModal').style.display = 'none';
+      document.getElementById('advancedMenuModal').style.display = 'flex';
     })
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
@@ -1320,14 +1486,14 @@
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
               
-              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
           })
           .catch(err => { 
               showLoader(false); showToast(err.message, "error"); 
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
           });
       }, "確定下載", "blue", () => {
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
       });
   }
 
@@ -1349,14 +1515,14 @@
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
               
-              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
           })
           .catch(err => { 
               showLoader(false); showToast(err.message, "error"); 
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
           });
       }, "確定下載", "blue", () => {
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
       });
   }
 
@@ -1378,14 +1544,14 @@
                   fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
               }, 10000);
               
-              document.getElementById('advancedMenuModal').style.display = 'flex'; // 返回進階選單
+              document.getElementById('advancedMenuModal').style.display = 'flex'; 
           })
           .catch(err => { 
               showLoader(false); showToast(err.message, "error"); 
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
           });
       }, "確定下載", "blue", () => {
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 取消時返回
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
       });
   }
 
@@ -1409,20 +1575,20 @@
               showConfirm("⚠️ 人數不足警告", data.message, () => {
                   executeGroupAssignment();
               }, "強制分組", "yellow", () => {
-                  if(advModal) advModal.style.display = 'flex'; // 取消時返回
+                  if(advModal) advModal.style.display = 'flex'; 
               });
           } else {
               showConfirm("確定分組", "確定要執行自動分組嗎？\n系統將會清空「參加名單」目前的正式組別，並依據現有組別依序編號（第1組、第2組...）。", () => {
                   executeGroupAssignment();
               }, "執行分組", "blue", () => {
-                  if(advModal) advModal.style.display = 'flex'; // 取消時返回
+                  if(advModal) advModal.style.display = 'flex'; 
               });
           }
       })
       .catch(err => {
           showLoader(false);
           showToast("檢查失敗: " + err.message, "error");
-          if(advModal) advModal.style.display = 'flex'; // 失敗時返回
+          if(advModal) advModal.style.display = 'flex'; 
       });
   }
 
@@ -1439,12 +1605,12 @@
           if(data.error) throw new Error(data.error);
           showToast(`✅ 分組成功！共產生 ${data.count} 組。`);
           fetchSignedList(); 
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 完成時返回
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
       })
       .catch(err => {
           showLoader(false);
           showToast("分組失敗: " + err.message, "error");
-          document.getElementById('advancedMenuModal').style.display = 'flex'; // 失敗時返回
+          document.getElementById('advancedMenuModal').style.display = 'flex'; 
       });
   }
 
@@ -1502,20 +1668,14 @@
             
             if(document.getElementById('classSelect').value) queryStudents(); 
             
-            // ★ 新增：成功後返回進階選單
             document.getElementById('crossClassModal').style.display = 'none';
             document.getElementById('advancedMenuModal').style.display = 'flex';
         });
-    }, "確定組隊", "blue", () => {
-        // ★ 新增：跨班組隊按下取消後，返回原本的跨班選單，不需要退回進階選單
-    });
+    }, "確定組隊", "blue", () => {});
   }
 
-  // 監聽密碼輸入框，按下 Enter 也可以驗證
   document.getElementById('adminPwd').addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') {
-          verifyAdmin();
-      }
+      if (e.key === 'Enter') verifyAdmin();
   });
 </script>
 </body>
