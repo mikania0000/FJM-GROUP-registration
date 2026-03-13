@@ -386,7 +386,7 @@
 <!-- ★ 新增：帳號管理設定 Modal -->
 <div class="modal-overlay" id="accountSettingsModal">
   <div class="modal modal-large">
-    <h3 style="margin-top:0; color: #4f46e5;">🔑 帳號管理 (白名單)</h3>
+    <h3 style="margin-top:0; color: #4f46e5;">🔑 帳號管理</h3>
     <p style="font-size:13px; color:var(--text-muted); text-align:left; margin-bottom:10px;">
       * 可輸入完整信箱 (例: test@gmail.com)<br>
       * 或輸入網域開放全校 (例: @fjm.kh.edu.tw)
@@ -398,7 +398,7 @@
     
     <div style="display: flex; gap: 10px; margin-top: 20px;">
       <button class="btn outline-gray" style="flex:1;" onclick="document.getElementById('accountSettingsModal').style.display='none'; document.getElementById('advancedMenuModal').style.display='flex';">返回</button>
-      <button class="btn" style="flex:1; background:#4f46e5;" onclick="saveAccountSettings()">儲存白名單</button>
+      <button class="btn" style="flex:1; background:#4f46e5;" onclick="saveAccountSettings()">儲存</button>
     </div>
   </div>
 </div>
@@ -1439,7 +1439,7 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== ★ 新增：帳號管理白名單 ==================
+  // ================== ★ 新增：帳號管理 ==================
   function openAccountSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -1504,7 +1504,7 @@
     .then(data => {
       showLoader(false);
       if(data.error) throw new Error(data.error);
-      showToast("白名單儲存成功！");
+      showToast("儲存成功！");
       document.getElementById('accountSettingsModal').style.display = 'none';
       document.getElementById('advancedMenuModal').style.display = 'flex';
     })
