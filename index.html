@@ -8,15 +8,15 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
-    --primary: #2563eb;       
+    --primary: #2563eb;        
     --primary-light: #dbeafe; 
-    --success: #059669;       
+    --success: #059669;        
     --success-light: #dcfce7;
     --danger: #e11d48;        
-    --warning: #d97706;       
+    --warning: #d97706;        
     --warning-light: #fef3c7;
     --info: #0ea5e9;          
-    --bg-page: #f1f5f9;       
+    --bg-page: #f1f5f9;        
     --card-bg: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
@@ -76,7 +76,7 @@
 
   #loader {
     position: fixed; inset: 0; background: rgba(255,255,255,0.85); 
-    z-index: 99998; display: none; justify-content: center; align-items: center; flex-direction: column;
+    z-index: 999999; display: none; justify-content: center; align-items: center; flex-direction: column;
   }
   .spinner {
     width: 50px; height: 50px; border: 5px solid var(--primary-light);
@@ -502,6 +502,9 @@
 
     const savedEmail = localStorage.getItem('fjm_logged_in_email');
     if (savedEmail) {
+      // ★ 修正：驗證期間先隱藏登入介面，避免使用者誤點導致重複認證
+      document.getElementById('loginOverlay').style.display = 'none';
+
       // 靜默驗證本地端 Email
       showLoader(true);
       fetch(GAS_API_URL, {
@@ -516,11 +519,13 @@
           successLogin();
         } else {
           localStorage.removeItem('fjm_logged_in_email');
+          document.getElementById('loginOverlay').style.display = 'flex'; // 驗證失敗再顯示出來
           showToast(data.message || "登入逾期或權限變更，請重新登入", "error");
         }
       })
       .catch(err => {
          showLoader(false);
+         document.getElementById('loginOverlay').style.display = 'flex'; // 發生錯誤也顯示出來
          showToast("連線錯誤，請重試", "error");
       });
     }
