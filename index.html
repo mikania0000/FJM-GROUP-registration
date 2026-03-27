@@ -209,7 +209,7 @@
   .btn-adv-orange { background: linear-gradient(135deg, #f59e0b, #b45309); }
   .btn-adv-slate { background: linear-gradient(135deg, #475569, #1e293b); }
   .btn-adv-pink { background: linear-gradient(135deg, #ec4899, #be185d); }
-  .btn-adv-indigo { background: linear-gradient(135deg, #4f46e5, #312e81); } /* 帳號管理 */
+  .btn-adv-indigo { background: linear-gradient(135deg, #4f46e5, #312e81); } 
   .btn-adv-gray { background: #f8fafc; color: #64748b; border: 2px dashed #cbd5e1; box-shadow: none; }
   
   .settings-form { display: flex; flex-direction: column; gap: 12px; text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px;}
@@ -219,11 +219,9 @@
   .cross-member-row { display: flex; gap: 10px; margin-bottom: 12px; text-align: left;}
   .cross-member-row select { width: 50%; padding: 10px; border-radius: 8px; font-size: 15px;}
   
-  /* 帳號管理清單樣式 */
   .account-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #f8fafc; }
   .account-input { flex: 1; padding: 8px !important; margin: 0 !important; border: 1px solid #cbd5e1 !important; text-align: left !important; font-size: 15px !important;}
 
-  /* ★ 新增：按鈕樣式 - 用於複製網址 */
   .btn-copy {
     background: white; border: 2px solid var(--primary); color: var(--primary);
     padding: 10px 20px; border-radius: 12px; font-size: 16px; font-weight: bold;
@@ -234,7 +232,6 @@
 </head>
 <body>
 
-<!-- ★ 修改：自動跳轉的社群軟體專屬阻擋畫面 -->
 <div id="lineWarning" style="display:none; position: fixed; inset: 0; background: #f8fafc; z-index: 9999999; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center;">
   <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
   <h2 style="color: var(--danger); margin-top: 0; font-size: 24px;">無法在應用程式內登入</h2>
@@ -253,11 +250,10 @@
   </div>
 </div>
 
-<!-- ★ 登入畫面 -->
 <div id="loginOverlay">
   <div class="login-card">
-    <h2>報名系統管理員登入</h2>
-    <p>請使用授權的 Google 帳號進行登入</p>
+    <h2>報名系統登入</h2>
+    <p>請使用Google帳號進行登入</p>
     <div style="display: flex; justify-content: center; margin-top: 20px;">
       <div id="g_id_onload"
          data-client_id="553016940521-araovlp30ctbqn6um5rr49q3es5jm4jg.apps.googleusercontent.com"
@@ -364,7 +360,6 @@
       <button class="btn-adv btn-adv-slate" onclick="openCrossClassModal()"><span style="font-size:28px;">🤝</span>6. 跨班組隊</button>
       <button class="btn-adv btn-adv-pink" onclick="checkAndConfirmGroups()"><span style="font-size:28px;">🏷️</span>7. 確定分組</button>
       <button class="btn-adv btn-adv-teal" style="background: linear-gradient(135deg, #0ea5e9, #0369a1);" onclick="generateGroupData()"><span style="font-size:28px;">📊</span>8. 分組資料</button>
-      <!-- ★ 新增帳號管理按鈕 -->
       <button class="btn-adv btn-adv-indigo" onclick="openAccountSettings()"><span style="font-size:24px;">🔑</span>9. 帳號管理</button>
     </div>
     <button class="btn outline-gray" style="margin-top:25px; width: 100%; padding: 12px; font-size: 18px;" onclick="closeAllModals()">關閉選單</button>
@@ -393,7 +388,6 @@
   </div>
 </div>
 
-<!-- ★ 新增：帳號管理設定 Modal -->
 <div class="modal-overlay" id="accountSettingsModal">
   <div class="modal modal-large">
     <h3 style="margin-top:0; color: #4f46e5;">🔑 帳號管理</h3>
@@ -439,21 +433,17 @@
 </div>
 
 <script>
-  // ★ 更新：LINE 自動跳轉與防呆機制
+  // LINE 自動跳轉與防呆機制
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   if (/Line|Instagram|FBAN|FBAV|Threads/i.test(ua)) {
-      // 檢查網址是否已經包含跳轉參數
       if (window.location.search.indexOf('openExternalBrowser=1') === -1) {
-          // 如果沒有，加上參數並重新導向，這會觸發 LINE 開啟外部瀏覽器
           const separator = window.location.href.indexOf('?') === -1 ? '?' : '&';
           window.location.href = window.location.href + separator + 'openExternalBrowser=1';
       } else {
-          // 如果已經加上參數卻還是在內建瀏覽器裡（例如 iOS 有時會擋住），則顯示防呆畫面讓使用者複製網址
           document.getElementById('lineWarning').style.display = 'flex';
           
           document.getElementById('btnCopyUrl').addEventListener('click', () => {
               const tempInput = document.createElement('input');
-              // 複製時把參數拿掉，維持網址乾淨
               tempInput.value = window.location.href.replace(/[?&]openExternalBrowser=1/, '');
               document.body.appendChild(tempInput);
               tempInput.select();
@@ -469,9 +459,7 @@
       }
   }
 
-  // ==========================================
-  // ⚠️ 前端防護
-  // ==========================================
+  // 前端防護
   document.addEventListener('contextmenu', event => event.preventDefault()); 
   document.addEventListener('keydown', event => {
       if (event.key === 'F12' || event.keyCode === 123) event.preventDefault();
@@ -479,9 +467,6 @@
       if (event.ctrlKey && (event.key === 'U' || event.key === 'u')) event.preventDefault();
   });
 
-  // ==========================================
-  // ⚠️ API 網址維持您提供的部署
-  // ==========================================
   const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzODU1MDFYG2Egp3A8jpUZxPddQHUQXE82J7tvtMYo1rLZD-zgwzDcXBP5zfNhVqVKw/exec"; 
   
   let sysConfig = {};
@@ -493,24 +478,23 @@
   let adminNextAction = null; 
   let currentEditData = { oldRowIndex: null, classStudents: [], oldGroup: '' };
 
-  // ================== Google 登入邏輯 ==================
+  // ★ 取得系統金鑰輔助函數
+  const getSessionToken = () => localStorage.getItem('fjm_session_token') || '';
+
+  // ================== Google 登入邏輯 (金鑰安全版) ==================
   function checkLocalLogin() {
-    // 若在內建瀏覽器，不執行登入以免報錯
     if (/Line|Instagram|FBAN|FBAV|Threads/i.test(ua) && window.location.search.indexOf('openExternalBrowser=1') !== -1) {
         return;
     }
 
-    const savedEmail = localStorage.getItem('fjm_logged_in_email');
-    if (savedEmail) {
-      // ★ 修正：驗證期間先隱藏登入介面，避免使用者誤點導致重複認證
+    const savedToken = getSessionToken();
+    if (savedToken) {
       document.getElementById('loginOverlay').style.display = 'none';
-
-      // 靜默驗證本地端 Email
       showLoader(true);
       fetch(GAS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'verifyLogin', payload: savedEmail })
+        body: JSON.stringify({ action: 'verifySession', token: savedToken })
       })
       .then(res => res.json())
       .then(data => {
@@ -518,61 +502,39 @@
         if (data.ok) {
           successLogin();
         } else {
-          localStorage.removeItem('fjm_logged_in_email');
-          document.getElementById('loginOverlay').style.display = 'flex'; // 驗證失敗再顯示出來
-          showToast(data.message || "登入逾期或權限變更，請重新登入", "error");
+          localStorage.removeItem('fjm_session_token');
+          document.getElementById('loginOverlay').style.display = 'flex';
+          showToast("登入逾期或權限變更，請重新登入", "error");
         }
       })
       .catch(err => {
          showLoader(false);
-         document.getElementById('loginOverlay').style.display = 'flex'; // 發生錯誤也顯示出來
+         document.getElementById('loginOverlay').style.display = 'flex';
          showToast("連線錯誤，請重試", "error");
       });
     }
   }
 
-  // ★ 修復 Base64 JWT 憑證在手機瀏覽器上的致命 Crash 問題
-  function decodeJwtResponse(token) {
-    try {
-      let base64Url = token.split('.')[1];
-      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      // 補齊 padding 以防止 Safari 的 atob 函數當機
-      const pad = base64.length % 4;
-      if (pad) {
-        if (pad === 1) throw new Error("無效的 Base64 長度");
-        base64 += new Array(5 - pad).join('=');
-      }
-      let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      return JSON.parse(jsonPayload);
-    } catch (e) {
-      console.error("憑證解析錯誤:", e);
-      return null;
-    }
-  }
-
-  // ★ 加入錯誤捕捉，如果當掉會跳出警告而不是變成一片死白
   function handleCredentialResponse(response) {
     try {
-      const payload = decodeJwtResponse(response.credential);
-      if (!payload || !payload.email) {
-          alert("無法讀取您的 Google 憑證，請試著換一個瀏覽器 (建議使用原生的 Chrome 或 Safari)！");
-          return;
+      // ★ 前端不再解析 JWT 憑證，直接將加密的 rawToken 傳給後端去跟 Google 伺服器驗證
+      const rawToken = response.credential;
+      if (!rawToken) {
+          alert("無法讀取您的 Google 憑證！"); return;
       }
-      const email = payload.email;
       
       showLoader(true);
       fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'verifyLogin', payload: email })
+          body: JSON.stringify({ action: 'verifyLogin', payload: rawToken })
       })
       .then(res => res.json())
       .then(data => {
           showLoader(false);
           if (data.ok) {
-              try { localStorage.setItem('fjm_logged_in_email', email); } catch(e){}
+              // 記錄後端核發的加密 Session Token
+              localStorage.setItem('fjm_session_token', data.token);
               successLogin();
           } else {
               showToast(data.message || "此帳號無權限登入", "error");
@@ -595,7 +557,7 @@
   }
 
   function logout() {
-    localStorage.removeItem('fjm_logged_in_email');
+    localStorage.removeItem('fjm_session_token');
     document.getElementById('mainAppWrap').style.display = 'none';
     document.getElementById('loginOverlay').style.display = 'flex';
   }
@@ -657,10 +619,10 @@
       document.body.removeChild(a);
   }
 
-  // ================== 初始化與背景更新 ==================
+  // ================== 系統請求區 (全面加上 token 參數) ==================
   function fetchInitData(isSilent = false) {
       if (!isSilent) showLoader(true);
-      fetch(`${GAS_API_URL}?action=getInitData&t=${Date.now()}`)
+      fetch(`${GAS_API_URL}?action=getInitData&token=${getSessionToken()}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
           if(data.error) throw new Error(data.error);
@@ -719,7 +681,6 @@
       });
   }
 
-  // ================== 查詢班級 ==================
   function queryStudents() {
     const cls = document.getElementById('classSelect').value;
     if(!cls) {
@@ -730,7 +691,7 @@
     }
 
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&token=${getSessionToken()}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         showLoader(false);
@@ -920,7 +881,7 @@
           fetch(GAS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+            body: JSON.stringify({ action: 'saveGroupSignup', payload: payload, token: getSessionToken() })
           })
           .then(res => res.json())
           .then(data => {
@@ -935,12 +896,11 @@
       }, "確定送出", "blue");
   }
 
-  // ================== 全校已報名清單 ==================
   function fetchSignedList() {
     document.getElementById('classSelect').value = '';
 
     showLoader(true);
-    fetch(`${GAS_API_URL}?action=getSignedList&t=${Date.now()}`)
+    fetch(`${GAS_API_URL}?action=getSignedList&token=${getSessionToken()}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
         showLoader(false);
@@ -1093,7 +1053,6 @@
       });
   }
 
-  // ================== 管理員、修改與刪除功能 ==================
   function showAdminModal(nextAction = null) {
     adminNextAction = nextAction;
     const pwdInput = document.getElementById('adminPwd');
@@ -1110,7 +1069,7 @@
     fetch(GAS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'verifyAdminPassword', payload: pwd })
+        body: JSON.stringify({ action: 'verifyAdminPassword', payload: pwd, token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1150,7 +1109,7 @@
           fetch(GAS_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+              body: JSON.stringify({ action: 'saveGroupSignup', payload: payload, token: getSessionToken() })
           })
           .then(res => res.json())
           .then(data => {
@@ -1158,7 +1117,7 @@
               return fetch(GAS_API_URL, {
                   method: 'POST',
                   headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                  body: JSON.stringify({ action: 'cancelGroups' })
+                  body: JSON.stringify({ action: 'cancelGroups', token: getSessionToken() })
               });
           })
           .then(res => res.json())
@@ -1178,7 +1137,7 @@
           fetch(GAS_API_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: 'cancelGroups' })
+              body: JSON.stringify({ action: 'cancelGroups', token: getSessionToken() })
           })
           .then(res => res.json())
           .then(data => {
@@ -1217,7 +1176,7 @@
           fetchEditCrossStudents(rowIndex, className, rowIndex);
       } else {
           showLoader(true);
-          fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&t=${Date.now()}`)
+          fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(className)}&token=${getSessionToken()}&t=${Date.now()}`)
             .then(res => res.json())
             .then(data => {
                 showLoader(false);
@@ -1251,7 +1210,7 @@
       
       document.getElementById(`cell-seat-${oldRowIndex}`).innerHTML = `<select class="main-select" style="padding:4px 8px; min-width:80px; font-size:14px;"><option value="">載入中...</option></select>`;
 
-      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(newClassName)}&t=${Date.now()}`)
+      fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(newClassName)}&token=${getSessionToken()}&t=${Date.now()}`)
         .then(res => res.json())
         .then(data => {
             if(data.error) throw new Error(data.error);
@@ -1307,7 +1266,7 @@
       fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'saveGroupSignup', payload: payload })
+          body: JSON.stringify({ action: 'saveGroupSignup', payload: payload, token: getSessionToken() })
       })
       .then(res => res.json())
       .then(data => {
@@ -1319,7 +1278,6 @@
       .catch(err => { showLoader(false); showToast("失敗: " + err.message, "error"); });
   }
 
-  // ================== 進階設定區域 ==================
   function triggerResetDefaults() {
     document.getElementById('advancedMenuModal').style.display = 'none'; 
     showConfirm("⚠️ 極度危險操作", "清除「所有學生」紀錄無法復原，確定執行？", () => {
@@ -1327,7 +1285,7 @@
         fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'resetDefaults' })
+          body: JSON.stringify({ action: 'resetDefaults', token: getSessionToken() })
         })
         .then(res => res.json())
         .then(data => {
@@ -1353,7 +1311,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getNoticeSettings' })
+      body: JSON.stringify({ action: 'getNoticeSettings', token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1395,7 +1353,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'saveNoticeSettings', payload: payload })
+      body: JSON.stringify({ action: 'saveNoticeSettings', payload: payload, token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1415,7 +1373,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getBasicSettings' })
+      body: JSON.stringify({ action: 'getBasicSettings', token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1469,7 +1427,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'saveBasicSettings', payload: payload })
+      body: JSON.stringify({ action: 'saveBasicSettings', payload: payload, token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1483,7 +1441,6 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== ★ 帳號管理 ==================
   function openAccountSettings() {
     document.getElementById('advancedMenuModal').style.display = 'none';
     showLoader(true);
@@ -1491,7 +1448,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'getWhitelist' })
+      body: JSON.stringify({ action: 'getWhitelist', token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1504,7 +1461,7 @@
       if (data.data && data.data.length > 0) {
         data.data.forEach(acc => addAccountRow(acc));
       } else {
-        addAccountRow(''); // 若為空，給一列空的
+        addAccountRow(''); 
       }
       
       document.getElementById('accountSettingsModal').style.display = 'flex';
@@ -1542,7 +1499,7 @@
     fetch(GAS_API_URL, {
       method: 'POST', 
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'saveWhitelist', payload: payload })
+      body: JSON.stringify({ action: 'saveWhitelist', payload: payload, token: getSessionToken() })
     })
     .then(res => res.json())
     .then(data => {
@@ -1555,12 +1512,11 @@
     .catch(err => { showLoader(false); showToast("儲存失敗", "error"); });
   }
 
-  // ================== 公假單 ==================
   function generateOfficeLeave() {
       document.getElementById('advancedMenuModal').style.display = 'none';
       showConfirm("公假單產生", "確定要產生「學務處公假單」並直接下載嗎？", () => {
           showLoader(true);
-          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave' }) })
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateOfficeLeave', token: getSessionToken() }) })
           .then(res => res.json())
           .then(data => { 
               showLoader(false); 
@@ -1571,7 +1527,7 @@
               setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
 
               setTimeout(() => {
-                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId, token: getSessionToken() }) });
               }, 10000);
               
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
@@ -1589,7 +1545,7 @@
       document.getElementById('advancedMenuModal').style.display = 'none';
       showConfirm("公假單產生", "確定要合併產生「班級公假單」並直接下載 PDF 嗎？", () => {
           showLoader(true);
-          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave' }) })
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateClassLeave', token: getSessionToken() }) })
           .then(res => res.json())
           .then(data => { 
               showLoader(false);
@@ -1600,7 +1556,7 @@
               setTimeout(() => { triggerDownload(data.excelUrl); }, 1500);
               
               setTimeout(() => {
-                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId, token: getSessionToken() }) });
               }, 10000);
               
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
@@ -1614,12 +1570,11 @@
       });
   }
 
-  // ================== 分組資料下載 ==================
   function generateGroupData() {
       document.getElementById('advancedMenuModal').style.display = 'none';
       showConfirm("分組資料產生", "確定要整理分組資料並下載 Excel 嗎？\n(將自動合併隊員名單供參考使用)", () => {
           showLoader(true);
-          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateGroupData' }) })
+          fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateGroupData', token: getSessionToken() }) })
           .then(res => res.json())
           .then(data => { 
               showLoader(false);
@@ -1629,7 +1584,7 @@
               triggerDownload(data.excelUrl);
               
               setTimeout(() => {
-                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId }) });
+                  fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'deleteTempSheet', payload: data.tmpId, token: getSessionToken() }) });
               }, 10000);
               
               document.getElementById('advancedMenuModal').style.display = 'flex'; 
@@ -1643,7 +1598,6 @@
       });
   }
 
-  // ================== 確定分組 ==================
   function checkAndConfirmGroups() {
       const advModal = document.getElementById('advancedMenuModal');
       if(advModal) advModal.style.display = 'none';
@@ -1652,7 +1606,7 @@
       fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'checkGroupStatus' })
+          body: JSON.stringify({ action: 'checkGroupStatus', token: getSessionToken() })
       })
       .then(res => res.json())
       .then(data => {
@@ -1685,7 +1639,7 @@
       fetch(GAS_API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'executeConfirmGroups' })
+          body: JSON.stringify({ action: 'executeConfirmGroups', token: getSessionToken() })
       })
       .then(res => res.json())
       .then(data => {
@@ -1719,7 +1673,7 @@
     if(!cls) { stuSel.innerHTML = '<option value="">-- 先選班級 --</option>'; return; }
     
     stuSel.innerHTML = '<option value="">載入中...</option>';
-    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&t=${Date.now()}`)
+    fetch(`${GAS_API_URL}?action=queryByClass&className=${encodeURIComponent(cls)}&token=${getSessionToken()}&t=${Date.now()}`)
       .then(res => res.json())
       .then(data => {
           stuSel.innerHTML = '<option value="">-- 選擇學生 --</option>';
@@ -1742,7 +1696,7 @@
         showLoader(true);
         fetch(GAS_API_URL, {
             method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'saveCrossClassTeam', payload: [Number(s1), Number(s2), Number(s3)] })
+            body: JSON.stringify({ action: 'saveCrossClassTeam', payload: [Number(s1), Number(s2), Number(s3)], token: getSessionToken() })
         })
         .then(res => res.json())
         .then(data => {
